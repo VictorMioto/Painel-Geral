@@ -143,6 +143,10 @@ tr:hover td{background:var(--surface2)}
 .theme-opt.on{border-color:var(--c-liq)}
 .sw{display:flex;gap:4px}
 .sw i{width:18px;height:18px;border-radius:5px;display:block}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;max-width:360px;width:100%;box-shadow:var(--shadow)}
+.modal .m-msg{font-size:14px;line-height:1.5;margin-bottom:16px}
+.modal .m-btns{display:flex;gap:8px;justify-content:flex-end}
 .toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%);background:var(--txt);color:var(--bg);padding:10px 20px;border-radius:24px;font-weight:600;font-size:13px;opacity:0;pointer-events:none;transition:.3s;z-index:99}
 .toast.show{opacity:1}
 .placeholder{padding:60px 20px;text-align:center;color:var(--txt2)}
@@ -165,7 +169,7 @@ tr:hover td{background:var(--surface2)}
     <div class="logo">Painel Victor Mioto<small>Motorista · Zona Leste SP</small></div>
     <button class="nav-btn on" data-sec="desempenho"><span class="ico">🚗</span>Desempenho</button>
     <button class="nav-btn" data-sec="metas"><span class="ico">🎯</span>Metas<span class="soon">EM BREVE</span></button>
-    <button class="nav-btn" data-sec="contas"><span class="ico">💳</span>Contas<span class="soon">EM BREVE</span></button>
+    <button class="nav-btn" data-sec="contas"><span class="ico">💳</span>Contas</button>
     <button class="nav-btn" data-sec="estudos"><span class="ico">📚</span>Estudos<span class="soon">EM BREVE</span></button>
     <div class="foot">v2.0 · dados Uber<br>05/01 → 08/07/2026</div>
   </nav>
@@ -181,14 +185,54 @@ const HIST = {"2026-01-05":{"km":null,"horas":8.7667,"corr":25,"bruto":250.3,"di
 /* ================= ESTADO ================= */
 const clone = o => JSON.parse(JSON.stringify(o));
 const KEY = 'painelVictorMioto_v2';
+const CONTAS_DEF = () => ([
+  {id:'claude', nome:'Claude',                val:120,   dia:1,  cat:'assinaturas', forma:'cartao', tipo:'fixa',     pago:false, valorReal:null},
+  {id:'barba',  nome:'Barbearia Não Perturbe',val:90,    dia:1,  cat:'cuidados',    forma:'cartao', tipo:'fixa',     pago:false, valorReal:null},
+  {id:'tim',    nome:'TIM',                   val:71,    dia:6,  cat:'assinaturas', forma:'cartao', tipo:'fixa',     pago:false, valorReal:null},
+  {id:'icloud', nome:'iCloud',                val:30,    dia:8,  cat:'assinaturas', forma:'cartao', tipo:'fixa',     pago:false, valorReal:null},
+  {id:'spotify',nome:'Spotify',               val:24,    dia:11, cat:'assinaturas', forma:'cartao', tipo:'fixa',     pago:false, valorReal:null},
+  {id:'ifood',  nome:'Clube iFood',           val:6,     dia:14, cat:'assinaturas', forma:'cartao', tipo:'fixa',     pago:false, valorReal:null},
+  {id:'das',    nome:'DAS MEI',               val:87.05, dia:20, cat:'mei',         forma:'pixqr',  tipo:'fixa',     pago:false, valorReal:null, obs:'gerar a guia DAS antes de pagar'},
+  {id:'alura',  nome:'Alura',                 val:225,   dia:28, cat:'assinaturas', forma:'cartao', tipo:'fixa',     pago:false, valorReal:null},
+  {id:'dentista',nome:'Dentista',             val:105,   dia:0,  cat:'cuidados',    forma:'cartao', tipo:'variavel', pago:false, valorReal:null, obs:'quando houver consulta'},
+  {id:'desod',  nome:'Desodorante',           val:25,    dia:0,  cat:'cuidados',    forma:'cartao', tipo:'variavel', pago:false, valorReal:null, obs:'quando acabar'},
+  {id:'shampoo',nome:'Shampoo',               val:30,    dia:0,  cat:'cuidados',    forma:'cartao', tipo:'variavel', pago:false, valorReal:null, obs:'quando acabar'},
+  {id:'condic', nome:'Condicionador',         val:18,    dia:0,  cat:'cuidados',    forma:'cartao', tipo:'variavel', pago:false, valorReal:null, obs:'quando acabar'},
+  {id:'smoke',  nome:'Smoke',                 val:130,   dia:0,  cat:'cuidados',    forma:'cartao', tipo:'meta',     metaSem:30, compras:[]},
+  {id:'lavagem',nome:'Lavagem do carro',      val:40,    dia:0,  cat:'mei',         forma:'cartao', tipo:'variavel', pago:false, valorReal:null},
+]);
+const CATS = [
+  {id:'assinaturas', nome:'Assinaturas', cor:'liq'},
+  {id:'cuidados',    nome:'Cuidados pessoais', cor:'ganho'},
+  {id:'mei',         nome:'MEI & Carro', cor:'custo'},
+  {id:'extra',       nome:'Extras', cor:'meta'},
+];
 const DEF = {
   config:{ gas:6.29, consumo:10, aluguel:545.79, meta:3500, tema:'farol',
            gasHist:[{data:'2026-06-13',preco:6.29}] },
-  dias:{} // 'YYYY-MM-DD': {km,horas,corr,bruto,dinFisico,pixQR,pixPJ,gas,promo,notas}
+  dias:{}, // 'YYYY-MM-DD': {km,horas,corr,bruto,dinFisico,pixQR,pixPJ,gas,promo,notas}
+  contas:{ mes:'', itens:CONTAS_DEF(), hist:[] }
 };
 let S = load();
 /* semear histórico (não sobrescreve edições do usuário; respeita exclusões) */
 (function(){
+  /* contas: init + virada de mês automática com arquivamento */
+  if(!S.contas || !S.contas.itens) S.contas={mes:'',itens:CONTAS_DEF(),hist:[]};
+  S.contas.hist = S.contas.hist || [];
+  const mesAtualC = new Date().toISOString().slice(0,7);
+  if(S.contas.mes && S.contas.mes !== mesAtualC){
+    // arquivar o mês que fechou
+    const snap = {
+      mes: S.contas.mes,
+      itens: clone(S.contas.itens),
+      totalPago: S.contas.itens.reduce((s,c)=> s + (c.tipo==='meta' ? (c.compras||[]).reduce((a,x)=>a+x.valor,0) : (c.pago ? (c.valorReal??c.val) : 0)), 0)
+    };
+    S.contas.hist.unshift(snap);
+    if(S.contas.hist.length>24) S.contas.hist.length=24;
+    // resetar para o mês novo
+    S.contas.itens.forEach(c=>{ if(c.tipo==='meta'){c.compras=[];} else {c.pago=false; c.valorReal=null;} });
+  }
+  S.contas.mes = mesAtualC;
   S.histDel = S.histDel || [];
   let n=0;
   for(const [d,v] of Object.entries(HIST)){
@@ -204,6 +248,14 @@ function load(){
   return clone(DEF);
 }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){ toast('⚠️ Não foi possível salvar (abra o arquivo no navegador)'); } }
+function pedirConfirmacao(msg, onSim){
+  const bg=document.createElement('div'); bg.className='modal-bg';
+  bg.innerHTML=`<div class="modal"><div class="m-msg">${msg}</div><div class="m-btns"><button class="btn s" id="md-nao">Cancelar</button><button class="btn d" id="md-sim">Confirmar</button></div></div>`;
+  document.body.appendChild(bg);
+  bg.querySelector('#md-nao').onclick=()=>bg.remove();
+  bg.onclick=e=>{ if(e.target===bg) bg.remove(); };
+  bg.querySelector('#md-sim').onclick=()=>{ bg.remove(); onSim(); };
+}
 function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2400); }
 
 /* migração do JSON antigo: campo único "dinheiro" -> dinFisico */
@@ -255,8 +307,9 @@ function setTab(t){ tab=t; render(); }
 /* ================= RENDER RAIZ ================= */
 function render(){
   const m=document.getElementById('main');
+  if(sec==='contas'){ rContas(); return; }
   if(sec!=='desempenho'){
-    const nomes={metas:['🎯','Metas pessoais'],contas:['💳','Contas pessoais'],estudos:['📚','Planejamento de estudos']};
+    const nomes={metas:['🎯','Metas pessoais'],estudos:['📚','Planejamento de estudos']};
     const [ico,nome]=nomes[sec];
     m.innerHTML=`<div class="placeholder"><div class="big">${ico}</div><h1>${nome}</h1><p style="margin-top:8px">Esta seção será construída na próxima etapa do projeto.</p></div>`;
     return;
@@ -527,7 +580,10 @@ function editarDia(d,silent){
     if(!silent&&!S.dias[d]) toast('Data sem registro — preencha e salve');
   },0);
 }
-function apagarDia(d){ if(confirm('Apagar o registro de '+d+'?')){ delete S.dias[d]; S.histDel=S.histDel||[]; if(HIST[d]&&!S.histDel.includes(d))S.histDel.push(d); save(); render(); } }
+function apagarDia(d){
+  pedirConfirmacao('Apagar o registro de <b>'+fmtDL(d)+'</b>?',
+    ()=>{ delete S.dias[d]; S.histDel=S.histDel||[]; if(HIST[d]&&!S.histDel.includes(d))S.histDel.push(d); save(); render(); toast('Dia apagado'); });
+}
 
 /* ================= ABA: ANÁLISES ================= */
 function rAnalises(){
@@ -726,6 +782,108 @@ function importar(ev){
       toast(ehAntigo?'JSON antigo importado e migrado ✔':'JSON importado ✔'); render();
     }catch(e){ toast('Arquivo inválido'); } };
   r.readAsText(f);
+}
+
+
+/* ================= SEÇÃO: CONTAS ================= */
+function contaValorMes(c){ return c.tipo==='meta' ? (c.compras||[]).reduce((a,x)=>a+x.valor,0) : (c.pago ? (c.valorReal??c.val) : 0); }
+function rContas(){
+  const m=document.getElementById('main');
+  const mesC=S.contas.mes;
+  const nomeMesC=(mm=>{const n=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];return n[+mm.slice(5,7)-1]+' de '+mm.slice(0,4);})(mesC);
+  const itens=S.contas.itens;
+  const totalEst=itens.reduce((s,c)=>s+(c.val||0),0);
+  const totalPago=itens.reduce((s,c)=>s+contaValorMes(c),0);
+  const fixasPend=itens.filter(c=>c.tipo==='fixa'&&!c.pago);
+  const hojeD=+hoje().slice(8,10);
+  const prox7=fixasPend.filter(c=>c.dia>0&&c.dia>=hojeD&&c.dia<=hojeD+7);
+  const atrasadas=fixasPend.filter(c=>c.dia>0&&c.dia<hojeD);
+  const smoke=itens.find(c=>c.id==='smoke');
+  const smokeGasto=smoke?(smoke.compras||[]).reduce((a,x)=>a+x.valor,0):0;
+
+  m.innerHTML=`
+  <h1>Contas pessoais</h1>
+  <div class="sub">${nomeMesC} · virada de mês automática com arquivamento</div>
+  <div class="grid g3">
+    <div class="kpi custo"><div class="lbl">Estimado do mês</div><div class="val">${R$(totalEst)}</div><div class="det">${itens.length} contas cadastradas</div></div>
+    <div class="kpi ganho"><div class="lbl">Pago até agora</div><div class="val">${R$(totalPago)}</div><div class="det">${itens.filter(c=>c.tipo!=='meta'&&c.pago).length} contas quitadas</div></div>
+    <div class="kpi ${atrasadas.length?'alerta':'liq'}"><div class="lbl">${atrasadas.length?'Venceram e não pagas':'Próximos 7 dias'}</div><div class="val">${atrasadas.length||prox7.length}</div><div class="det">${(atrasadas.length?atrasadas:prox7).map(c=>c.nome+' (dia '+c.dia+')').join(' · ')||'nada por vir'}</div></div>
+  </div>
+  <div style="height:14px"></div>
+  ${CATS.map(cat=>{
+    const lista=itens.filter(c=>c.cat===cat.id);
+    if(!lista.length) return '';
+    const est=lista.reduce((s,c)=>s+(c.val||0),0), pg=lista.reduce((s,c)=>s+contaValorMes(c),0);
+    return `<div class="card" style="margin-bottom:14px">
+      <h3><span class="dot ${cat.cor}"></span>${cat.nome} <span class="mini" style="margin-left:auto">${R$(pg)} pago · ${R$(est)} estimado</span></h3>
+      <div class="tbl-wrap"><table>
+        <tr><th>Conta</th><th>Venc.</th><th>Forma</th><th>Estimado</th><th>Pago (real)</th><th>Status</th><th></th></tr>
+        ${lista.map(c=>{
+          if(c.tipo==='meta'){
+            const g=(c.compras||[]).reduce((a,x)=>a+x.valor,0);
+            return `<tr><td><b>${c.nome}</b><div class="mini">meta R$ ${c.metaSem}/semana · ${(c.compras||[]).length} compra(s)</div></td><td>livre</td><td>${c.forma==='pixqr'?'📱 Pix QR':'💳 cartão'}</td><td>${R$(c.val)}</td><td class="${g>c.val?'neg':''}">${R$(g)}</td>
+            <td><input type="number" step="0.01" placeholder="valor" id="smk-v" style="width:80px;padding:5px"> <button class="btn s" style="padding:5px 9px;font-size:11px" onclick="addCompraSmoke('${c.id}')">+ compra</button></td>
+            <td><button class="btn d" style="padding:4px 9px;font-size:11px" onclick="desfazerSmoke('${c.id}')" title="remove última compra">↩</button></td></tr>`;
+          }
+          return `<tr style="${c.pago?'opacity:.65':''}"><td><b>${c.nome}</b>${c.obs?`<div class="mini">${c.obs}</div>`:''}</td><td>${c.dia>0?'dia '+c.dia:'livre'}</td><td>${c.forma==='pixqr'?'📱 Pix QR':'💳 cartão'}</td><td>${R$(c.val)}</td>
+          <td>${c.pago?R$(c.valorReal??c.val):`<input type="number" step="0.01" placeholder="${(c.val||0).toFixed(2)}" id="cv-${c.id}" style="width:90px;padding:5px">`}</td>
+          <td>${c.pago?`<span class="pill" style="background:var(--c-ganho-bg);color:var(--c-ganho-t)">pago ✔</span>`:`<button class="btn p" style="padding:5px 11px;font-size:12px" onclick="pagarConta('${c.id}')">pagar</button>`}</td>
+          <td style="white-space:nowrap">${c.pago?`<button class="btn s" style="padding:4px 10px;font-size:11px;margin-right:10px" onclick="despagarConta('${c.id}')" title="desfazer pagamento">↩</button>`:''}<button class="btn d" style="padding:4px 10px;font-size:11px" onclick="removerConta('${c.id}')" title="remover conta da lista">✕</button></td></tr>`;
+        }).join('')}
+      </table></div>
+    </div>`;
+  }).join('')}
+  <div class="card" style="margin-bottom:14px">
+    <h3><span class="dot meta"></span>Adicionar conta</h3>
+    <div class="frow">
+      <div><label>Nome</label><input type="text" id="nc-nome" placeholder="ex: Netflix"></div>
+      <div><label>Valor estimado (R$)</label><input type="number" step="0.01" id="nc-val"></div>
+      <div><label>Dia venc. (0 = livre)</label><input type="number" min="0" max="31" id="nc-dia" value="0"></div>
+      <div><label>Categoria</label><select id="nc-cat">${CATS.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('')}</select></div>
+      <div><label>Forma</label><select id="nc-forma"><option value="cartao">💳 Cartão</option><option value="pixqr">📱 Pix QR</option></select></div>
+    </div>
+    <button class="btn p" onclick="novaConta()">＋ Adicionar</button>
+  </div>
+  <div class="card">
+    <h3><span class="dot corr"></span>Histórico de meses (${S.contas.hist.length})</h3>
+    ${S.contas.hist.length?S.contas.hist.map((h,i)=>{
+      const nm=(mm=>{const n=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];return n[+mm.slice(5,7)-1].toUpperCase()+'/'+mm.slice(0,4);})(h.mes);
+      return `<div class="hbar"><div class="hb-top"><span><b>${nm}</b> · ${h.itens.filter(c=>c.tipo!=='meta'&&c.pago).length} contas pagas</span><span>total pago <b>${R$(h.totalPago)}</b></span></div><div class="hb-track"><div class="hb-fill" style="width:${Math.min(100,100*h.totalPago/(totalEst||1))}%;background:var(--c-custo)"></div></div></div>`;
+    }).join(''):'<div class="mini">Quando o mês virar, o fechamento é arquivado aqui automaticamente — contas pagas, valores reais e total. Nada se perde.</div>'}
+  </div>`;
+}
+function pagarConta(id){
+  const c=S.contas.itens.find(x=>x.id===id); if(!c)return;
+  const inp=document.getElementById('cv-'+id);
+  const v=inp&&inp.value!==''?+inp.value:null;
+  c.pago=true; c.valorReal=v;
+  save(); render(); toast(c.nome+' paga ✔');
+}
+function despagarConta(id){ const c=S.contas.itens.find(x=>x.id===id); if(c){c.pago=false;c.valorReal=null;save();render();} }
+function removerConta(id){
+  const c=S.contas.itens.find(x=>x.id===id); if(!c)return;
+  pedirConfirmacao('Remover a conta <b>'+c.nome+'</b>?<br><span class="mini">Ela sai da lista deste e dos próximos meses. O histórico de meses já fechados não muda.</span>',
+    ()=>{ S.contas.itens=S.contas.itens.filter(x=>x.id!==id); save(); render(); toast(c.nome+' removida'); });
+}
+function novaConta(){
+  const nome=document.getElementById('nc-nome').value.trim();
+  const val=+document.getElementById('nc-val').value||0;
+  if(!nome||!val){toast('Preencha nome e valor');return;}
+  S.contas.itens.push({id:'c'+Date.now(), nome, val, dia:+document.getElementById('nc-dia').value||0,
+    cat:document.getElementById('nc-cat').value, forma:document.getElementById('nc-forma').value,
+    tipo: (+document.getElementById('nc-dia').value>0)?'fixa':'variavel', pago:false, valorReal:null});
+  save(); render(); toast(nome+' adicionada ✔');
+}
+function addCompraSmoke(id){
+  const c=S.contas.itens.find(x=>x.id===id); if(!c)return;
+  const v=+document.getElementById('smk-v').value;
+  if(!v){toast('Digite o valor da compra');return;}
+  c.compras=c.compras||[]; c.compras.push({data:hoje(),valor:v});
+  save(); render(); toast('Compra de '+R$(v)+' registrada');
+}
+function desfazerSmoke(id){
+  const c=S.contas.itens.find(x=>x.id===id);
+  if(c&&c.compras&&c.compras.length){c.compras.pop();save();render();}
 }
 
 /* ================= INIT ================= */
