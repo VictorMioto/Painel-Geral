@@ -174,7 +174,7 @@ tr:hover td{background:var(--surface2)}
     <button class="nav-btn on" data-sec="desempenho"><span class="ico">🚗</span>Desempenho</button>
     <button class="nav-btn" data-sec="metas"><span class="ico">🎯</span>Metas</button>
     <button class="nav-btn" data-sec="contas"><span class="ico">💳</span>Contas</button>
-    <button class="nav-btn" data-sec="estudos"><span class="ico">📚</span>Estudos<span class="soon">EM BREVE</span></button>
+    <button class="nav-btn" data-sec="estudos"><span class="ico">📚</span>Estudos</button>
     <div class="foot">v2.0 · dados Uber<br>05/01 → 08/07/2026</div>
   </nav>
   <main id="main"></main>
@@ -305,6 +305,61 @@ m_cidadania: `
 `
 };
 
+const TRILHA = [
+ {id:'ph1', nome:'Fase 1 — Fundamentos Web + Git', per:'Jul–Ago 2026 · 8 semanas', cor:'ganho',
+  desc:'HTML/CSS sólidos + Git e lógica de programação desde a semana 1 (raciocínio antes de sintaxe). Portfólio pessoal vira projeto âncora versionado no GitHub.',
+  sem:['Git/GitHub: repositório, commit, push, branch — usar desde já em todo exercício',
+   'Lógica de programação: fluxogramas, pseudocódigo, raciocínio antes de codar',
+   'HTML semântico, estrutura de documentos, acessibilidade',
+   'CSS: box model, flexbox, posicionamento',
+   'CSS: grid, responsividade, media queries',
+   'CSS: variáveis, animações, transições',
+   'Projeto: portfólio pessoal — estrutura e layout (commits diários)',
+   'Projeto: portfólio — estilo, responsividade e deploy GitHub Pages']},
+ {id:'ph2', nome:'Fase 2 — JavaScript de Verdade', per:'Ago–Out 2026 · 8 semanas', cor:'liq',
+  desc:'JS domina 68% das vagas em 2026. Algoritmos e testes unitários (Jest) entram aqui, não só no fim. Dashboard Uber como projeto âncora começa aqui.',
+  sem:['JS: tipos, variáveis, funções, escopo',
+   'Lógica e algoritmos: loops, recursão, complexidade básica (Big O simples)',
+   'JS: arrays, objetos, métodos modernos',
+   'Algoritmos de array: busca, ordenação simples (bubble/insertion) — exercícios práticos',
+   'JS: DOM manipulation, eventos',
+   'JS: async/await, fetch, consumindo APIs REST',
+   'Testes com Jest: testar funções puras e lógica do dashboard',
+   'Projeto: dashboard Uber em JS puro — estrutura, dados e testes unitários']},
+ {id:'ph3', nome:'Fase 3 — SQL + Backend Básico', per:'Out–Dez 2026 · 8 semanas', cor:'meta',
+  desc:'Bancos relacionais + APIs aparecem em quase toda vaga júnior (confirmado em vaga real). Inclui testes de rota e dashboard com IA integrada.',
+  sem:['Projeto: dashboard Uber — integração com API do Claude',
+   'JS: módulos, classes, padrões de projeto',
+   'SQL: SELECT, WHERE, ORDER BY — fundamentos de consulta',
+   'SQL: JOIN (inner, left), relacionamento entre tabelas',
+   'SQL: GROUP BY, agregações, subqueries',
+   'Banco de dados: modelagem básica, chaves primária/estrangeira',
+   'Backend básico: Node.js + Express, rotas simples',
+   'Projeto: API simples consumindo banco SQL (CRUD completo) + testes de rota']},
+ {id:'ph4', nome:'Fase 4 — React + TypeScript + Deploy', per:'Dez 2026–Fev 2027 · 9 semanas', cor:'corr',
+  desc:'React ~45% do mercado front-end, TypeScript em 60%+ das vagas júnior. Estruturas de dados e React Testing Library na prática, não só em entrevista.',
+  sem:['Algoritmos intermediários: estruturas de dados (pilha, fila, hash map) na prática',
+   'React: componentes, JSX, props',
+   'React: useState, useEffect, hooks',
+   'React: context, useReducer',
+   'TypeScript: tipos básicos, interfaces',
+   'TypeScript: generics, utility types',
+   'Testes: React Testing Library — testar componentes do dashboard',
+   'React + TS: projeto completo integrando SQL/API da fase anterior',
+   'Next.js: SSR, rotas, deploy Vercel (noção prática de cloud)']},
+ {id:'ph5', nome:'Fase 5 — IA Aplicada + Portfólio + Candidaturas', per:'Fev–Abr 2027 · 9 semanas', cor:'custo',
+  desc:'IA aplicada é o diferencial mais valorizado para júnior em 2026/27. Fase de saída: portfólio não exige diploma — Nubank, Mercado Livre e iFood contratam por GitHub forte.',
+  sem:['IA aplicada: integrar API do Claude/OpenAI em um projeto real do portfólio',
+   'IA aplicada: prompt engineering básico + assistente próprio (chatbot simples)',
+   'Polir todos os projetos do portfólio (README, testes, deploy, documentação)',
+   'LinkedIn: headline, about, experiência, projetos em destaque',
+   'Currículo técnico e carta de apresentação',
+   'Candidaturas: 5+/semana (LinkedIn, Gupy, Nubank/iFood/Mercado Livre)',
+   'Entrevistas: revisão de algoritmos e estruturas de dados (já praticados nas fases 2 e 4)',
+   'Entrevistas: perguntas comportamentais + mock interview',
+   'Networking, acompanhamento de processos e negociação de oferta']},
+];
+
 const METAS_DEF = () => ([
   {id:'m_reserva', nome:'Reserva de emergência', alvo:null, prazo:'2027-05-31', cor:'liq', aportes:[],
    notas:'Alvo dinâmico: 6 × o total estimado das suas contas do mês — se as contas mudarem, o alvo acompanha sozinho.'},
@@ -320,11 +375,15 @@ const DEF = {
            gasHist:[{data:'2026-06-13',preco:6.29}] },
   dias:{}, // 'YYYY-MM-DD': {km,horas,corr,bruto,dinFisico,pixQR,pixPJ,gas,promo,notas}
   contas:{ mes:'', itens:CONTAS_DEF(), hist:[] },
-  metas:{ itens: METAS_DEF() }
+  metas:{ itens: METAS_DEF() },
+  estudos:{ done:{}, fasesAbertas:['ph1'] }
 };
 let S = load();
 /* semear histórico (não sobrescreve edições do usuário; respeita exclusões) */
 (function(){
+  /* estudos: init */
+  if(!S.estudos) S.estudos={done:{},fasesAbertas:['ph1']};
+  S.estudos.done = S.estudos.done || {}; S.estudos.fasesAbertas = S.estudos.fasesAbertas || ['ph1'];
   /* metas: init + migrações */
   if(!S.metas || !S.metas.itens) S.metas={itens:METAS_DEF()};
   (m=>{ if(m && m.alvo===8000){ m.alvo=50000; m.notas='Meta de segurança do plano: total projetado 2030 fica entre R$ 33.000 e 75.000 (fator Copa 1,5–2× sobre valores de hoje). Viagem de 15 dias: GRU → Manchester, base na casa do primo em Warrington. Abra o plano completo para roteiro, custos, investimento e linha do tempo.'; } })(S.metas.itens.find(x=>x.id==='m_copa'));
@@ -421,12 +480,7 @@ function render(){
   const m=document.getElementById('main');
   if(sec==='contas'){ rContas(); return; }
   if(sec==='metas'){ rMetas(); return; }
-  if(sec!=='desempenho'){
-    const nomes={estudos:['📚','Planejamento de estudos']};
-    const [ico,nome]=nomes[sec];
-    m.innerHTML=`<div class="placeholder"><div class="big">${ico}</div><h1>${nome}</h1><p style="margin-top:8px">Esta seção será construída na próxima etapa do projeto.</p></div>`;
-    return;
-  }
+  if(sec==='estudos'){ rEstudos(); return; }
   m.innerHTML=`
     <h1>Desempenho profissional</h1>
     <div class="sub">Uber · Fiat Mobi 2025 · atualizado em tempo real conforme seus registros</div>
@@ -1104,6 +1158,78 @@ function novaMeta(){
   if(!nome||!alvo||!prazo){toast('Preencha nome, alvo e prazo');return;}
   S.metas.itens.push({id:'m'+Date.now(),nome,alvo,prazo,cor:'corr',aportes:[],notas:''});
   save(); render(); toast(nome+' adicionada ✔');
+}
+
+
+/* ================= SEÇÃO: ESTUDOS ================= */
+function rEstudos(){
+  const mEl=document.getElementById('main');
+  const totalSem=TRILHA.reduce((s,f)=>s+f.sem.length,0);
+  const feitas=Object.keys(S.estudos.done).length;
+  const pct=100*feitas/totalSem;
+  // semana esperada pelo calendário (início 01/07/2026)
+  const ini=new Date('2026-07-01T12:00'), H=new Date(hoje()+'T12:00');
+  const semEsp=Math.min(totalSem, Math.max(1, Math.floor((H-ini)/(7*86400000))+1));
+  const ritmo = feitas>=semEsp ? ['no ritmo ✔','ganho'] : [`${semEsp-feitas} semana(s) atrás do calendário`,'custo'];
+  // fase atual = primeira com semana pendente
+  let faseAtual=TRILHA[TRILHA.length-1], proxSemana=null, proxIdx=0;
+  outer: for(const f of TRILHA){
+    for(let i=0;i<f.sem.length;i++){
+      if(!S.estudos.done[f.id+'-'+i]){ faseAtual=f; proxSemana=f.sem[i]; proxIdx=i; break outer; }
+    }
+  }
+  mEl.innerHTML=`
+  <h1>Planejamento de estudos</h1>
+  <div class="sub">trilha dev 2026/27 · 1h30 por dia útil · jul/2026 → abr/2027 · revisada com base no mercado</div>
+  <div class="grid g3">
+    <div class="kpi meta"><div class="lbl">Progresso da trilha</div><div class="val">${feitas}/${totalSem}</div><div class="det">${pct.toFixed(1)}% das semanas concluídas</div></div>
+    <div class="kpi ${ritmo[1]}"><div class="lbl">Ritmo vs calendário</div><div class="val">${feitas>=semEsp?'OK':semEsp-feitas}</div><div class="det">semana esperada: ${semEsp} · ${ritmo[0]}</div></div>
+    <div class="kpi liq"><div class="lbl">Agora: ${faseAtual.nome.split('—')[0].trim()}</div><div class="val" style="font-size:15px;line-height:1.35">${proxSemana?('Semana '+(proxIdx+1)+': '+proxSemana):'Trilha concluída 🎉'}</div><div class="det">${proxSemana?'próxima semana a concluir':''}</div></div>
+  </div>
+  <div style="height:6px"></div>
+  <div class="hbar"><div class="hb-track" style="height:12px"><div class="hb-fill" style="width:${pct}%;background:var(--c-meta)"></div></div></div>
+  <div style="height:10px"></div>
+  ${TRILHA.map(f=>{
+    const done=f.sem.filter((_,i)=>S.estudos.done[f.id+'-'+i]).length;
+    const aberta=S.estudos.fasesAbertas.includes(f.id);
+    const completa=done===f.sem.length;
+    return `<div class="card" style="margin-bottom:12px;border-left:4px solid var(--c-${f.cor})">
+      <h3 style="cursor:pointer;user-select:none" onclick="toggleFase('${f.id}')">
+        <span class="dot ${f.cor}"></span>${f.nome}
+        <span class="pill" style="margin-left:8px;background:${completa?'var(--c-ganho-bg)':'var(--surface2)'};color:${completa?'var(--c-ganho-t)':'var(--txt2)'}">${done}/${f.sem.length}${completa?' ✔':''}</span>
+        <span class="mini" style="margin-left:auto">${f.per} ${aberta?'▴':'▾'}</span>
+      </h3>
+      <div style="display:${aberta?'block':'none'}">
+        <div class="mini" style="margin-bottom:10px">${f.desc}</div>
+        ${f.sem.map((s,i)=>{
+          const k=f.id+'-'+i, d=S.estudos.done[k];
+          return `<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 6px;border-bottom:1px solid var(--border);${d?'opacity:.65':''}">
+            <input type="checkbox" ${d?'checked':''} onchange="toggleSemana('${k}')" style="width:18px;height:18px;margin-top:1px;flex-shrink:0;cursor:pointer">
+            <div style="flex:1"><b style="font-size:13px">Semana ${i+1}</b> <span style="font-size:13px">· ${s}</span>
+            ${d?`<div class="mini">concluída em ${new Date(d+'T12:00').toLocaleDateString('pt-BR')}</div>`:''}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('')}
+  <div class="card">
+    <h3><span class="dot ganho"></span>Aprendizado na prática</h3>
+    <div class="insight i-pos"><b>A semana 1 você já viveu</b>Repositório, commit, push, branch, pull request e merge — tudo executado de verdade neste painel (3 PRs mergeados no Painel-Geral). Se ainda não marcou, pode marcar com a consciência limpa.</div>
+    <div class="insight i-dica"><b>O painel é seu projeto âncora</b>A trilha prevê o "dashboard Uber" como projeto das fases 2 e 3 — ele já existe e evolui a cada seção. Nas próximas fases, os exercícios de JS, SQL e React podem partir dele: código real, com dados reais, no seu GitHub.</div>
+  </div>`;
+}
+function toggleFase(id){
+  const a=S.estudos.fasesAbertas;
+  const i=a.indexOf(id);
+  if(i>=0) a.splice(i,1); else a.push(id);
+  save(); render();
+}
+function toggleSemana(k){
+  if(S.estudos.done[k]) delete S.estudos.done[k];
+  else S.estudos.done[k]=hoje();
+  save(); render();
+  const n=Object.keys(S.estudos.done).length;
+  if(S.estudos.done[k]) toast('Semana concluída ✔ ('+n+'/42)');
 }
 
 /* ================= INIT ================= */
