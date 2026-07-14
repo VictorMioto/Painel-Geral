@@ -147,6 +147,10 @@ tr:hover td{background:var(--surface2)}
 .modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;max-width:360px;width:100%;box-shadow:var(--shadow)}
 .modal .m-msg{font-size:14px;line-height:1.5;margin-bottom:16px}
 .modal .m-btns{display:flex;gap:8px;justify-content:flex-end}
+.modal.grande{max-width:700px;max-height:86vh;display:flex;flex-direction:column}
+.modal.grande .m-body{overflow-y:auto;padding-right:8px}
+.modal.grande .m-body h3{font-size:14px}
+.modal.grande .m-body table{margin-bottom:6px;font-size:12.5px}
 .toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%);background:var(--txt);color:var(--bg);padding:10px 20px;border-radius:24px;font-weight:600;font-size:13px;opacity:0;pointer-events:none;transition:.3s;z-index:99}
 .toast.show{opacity:1}
 .placeholder{padding:60px 20px;text-align:center;color:var(--txt2)}
@@ -168,7 +172,7 @@ tr:hover td{background:var(--surface2)}
   <nav class="sidebar">
     <div class="logo">Painel Victor Mioto<small>Motorista · Zona Leste SP</small></div>
     <button class="nav-btn on" data-sec="desempenho"><span class="ico">🚗</span>Desempenho</button>
-    <button class="nav-btn" data-sec="metas"><span class="ico">🎯</span>Metas<span class="soon">EM BREVE</span></button>
+    <button class="nav-btn" data-sec="metas"><span class="ico">🎯</span>Metas</button>
     <button class="nav-btn" data-sec="contas"><span class="ico">💳</span>Contas</button>
     <button class="nav-btn" data-sec="estudos"><span class="ico">📚</span>Estudos<span class="soon">EM BREVE</span></button>
     <div class="foot">v2.0 · dados Uber<br>05/01 → 08/07/2026</div>
@@ -207,15 +211,123 @@ const CATS = [
   {id:'mei',         nome:'MEI & Carro', cor:'custo'},
   {id:'extra',       nome:'Extras', cor:'meta'},
 ];
+/* ================= PLANOS COMPLETOS (abrem em modal) ================= */
+const PLANOS = {
+m_copa: `
+<div class="insight i-dica"><b>Estrutura da viagem — 15 dias · 2 países · 3+ cidades</b>Roteiro: GRU → Manchester · Manchester → Sede da Copa · Sede → Manchester → GRU.<br>Hospedagem: ~6 noites com o primo em Warrington (grátis) + ~9 noites em hotel na cidade do jogo. Economia: ~R$ 3.000.</div>
+<div class="insight i-pos"><b>Por que Warrington é base estratégica</b>Warrington→Liverpool: 30 min de trem · Warrington→Manchester: 25 min. Você chega do Brasil descansando primeiro, vai à Copa na melhor condição e volta para o primo antes do voo de retorno.</div>
+<h3 style="margin:14px 0 8px">📅 Roteiro dia a dia</h3>
+<table><tr><th style="text-align:left">Dia</th><th style="text-align:left">Plano</th></tr>
+<tr><td>1</td><td style="text-align:left"><b>GRU → Manchester</b> · voo ~11h30. Chega cedo no dia 2. Primo te busca ou trem Warrington Central (30 min, £5–8)</td></tr>
+<tr><td>2</td><td style="text-align:left"><b>Chegada e descanso</b> · recuperação do jetlag — não tente fazer muita coisa</td></tr>
+<tr><td>3</td><td style="text-align:left"><b>Liverpool</b> · 30 min de trem. Beatles Museum, Albert Dock, Anfield. Dia cheio e barato</td></tr>
+<tr><td>4</td><td style="text-align:left"><b>Manchester</b> · Old Trafford ou Etihad, Northern Quarter, Spinningfields</td></tr>
+<tr><td>5</td><td style="text-align:left"><b>Lake District ou Chester</b> · natureza a 1h de carro, ou cidade medieval a 20 min de trem</td></tr>
+<tr><td>6</td><td style="text-align:left"><b>Manchester → Sede da Copa</b> · voo manhã (2h25–3h). Check-in e clima de Copa nas ruas</td></tr>
+<tr><td>7–8</td><td style="text-align:left"><b>Turismo na cidade</b> · Madrid: Prado, Retiro, Bernabéu · Barcelona: Sagrada Família, El Born · Lisboa: Belém, Alfama</td></tr>
+<tr><td>9</td><td style="text-align:left"><b>DIA DO JOGO 🎉</b> · acordar cedo, fan zone, estádio à tarde/noite. Oitavas: início de jul · Quartas: 5–8 jul</td></tr>
+<tr><td>10–11</td><td style="text-align:left"><b>Cidade bônus</b> · Lisboa→Porto 3h trem (€35) · Madrid→Sevilha 2h30 AVE · Barcelona→Valência 3h</td></tr>
+<tr><td>12</td><td style="text-align:left"><b>Sede → Manchester</b> · voo à tarde. Último jantar e última noite na casa do primo</td></tr>
+<tr><td>13</td><td style="text-align:left"><b>Último dia na Inglaterra</b> · descanso antes do voo longo. Pub, mercado, recarregar</td></tr>
+<tr><td>14–15</td><td style="text-align:left"><b>MAN → GRU</b> · voo ~11h30. Fim de uma viagem de 15 dias, 2 países, 3 cidades</td></tr></table>
+<h3 style="margin:14px 0 8px">💰 Estimativa de custos (valores 2026 · projetar 1,5–2× para 2030)</h3>
+<table><tr><th style="text-align:left">Item</th><th>Faixa</th></tr>
+<tr><td style="text-align:left">Passagem GRU→Manchester (ida e volta) — via milhas pode sair R$ 0, comece a acumular pontos agora</td><td>R$ 8.000–12.000</td></tr>
+<tr><td style="text-align:left">Voo Manchester→Sede (EasyJet/Ryanair) — reservar junto em 2029</td><td>R$ 600–1.500</td></tr>
+<tr><td style="text-align:left">Ingresso oitavas/quartas (categoria mais barata) — primeira leva FIFA é sempre a mais barata</td><td>R$ 2.500–6.000</td></tr>
+<tr><td style="text-align:left">Hotel ~10 noites na cidade do jogo — reservar com cancelamento grátis assim que sair o sorteio</td><td>R$ 5.000–9.000</td></tr>
+<tr><td style="text-align:left">Alimentação 15 dias (€30–40/dia)</td><td>R$ 2.700–3.600</td></tr>
+<tr><td style="text-align:left">Transporte local + city pass — metrô no dia do jogo, nunca Uber (preço triplica)</td><td>R$ 900–1.500</td></tr>
+<tr><td style="text-align:left">Seguro viagem 15 dias Europa (obrigatório)</td><td>R$ 600–1.000</td></tr>
+<tr><td style="text-align:left">Passeios, souvenirs, imprevistos</td><td>R$ 1.500–2.500</td></tr></table>
+<div class="insight i-neg" style="margin-top:10px"><b>Total projetado para 2030 (fator Copa 1,5–2×): R$ 33.000–75.000</b>Meta de segurança: R$ 50.000 · aporte de referência: ~R$ 1.111/mês de jul/26 a mar/30 (o painel recalcula o aporte real conforme você guarda).</div>
+<h3 style="margin:14px 0 8px">🏦 Estratégia de investimento por fase</h3>
+<div class="insight i-pos"><b>Jul/26 – Dez/27 · CDB liquidez diária</b>Nubank Caixinha ou Sofisa Direto 105% CDI. Seguro, rende todo dia, resgata quando quiser.</div>
+<div class="insight i-neutro"><b>2027–2028 · Tesouro IPCA+ ou CDB IPCA+</b>Prazo 2030, rende inflação + 5–6% ao ano. Protege contra a inflação dos próximos 3 anos.</div>
+<div class="insight i-dica"><b>2028–2029 · Converter para euros/libras via Wise</b>Taxa real de câmbio, sem spread. Ative a Conversão Automática: define o câmbio alvo e a Wise executa sozinha.</div>
+<div class="insight i-neg"><b>Atenção ao câmbio precoce</b>CDI (~14% a.a.) rende muito mais que o euro parado na Wise (1,72% a.a.). Não converta tudo cedo — espere 2027–2028 e converta em momentos de câmbio favorável.</div>
+<h3 style="margin:14px 0 8px">🪪 Documentos — fazer antes de 2030</h3>
+<div class="insight i-neg"><b>UK ETA — obrigatório desde fev/2026 · FAÇA AGORA</b>£20 (~R$ 140) · app oficial UK ETA ou gov.uk · vale 2 anos · se tirar passaporte novo, refazer.</div>
+<div class="insight i-neutro"><b>ETIAS — obrigatório para Espanha/Portugal</b>€7 · somente em europa.eu/etias (há sites falsos cobrando €30–50) · vale 3 anos · abre out/2026.</div>
+<div class="insight i-pos"><b>Passaporte brasileiro ✓</b>Emitido jan/2025, vence jan/2035 — sem renovação necessária para 2030.</div>
+<div class="insight i-pos"><b>Bônus cidadania portuguesa</b>Se aprovada antes de 2030, o passaporte europeu elimina o ETIAS e facilita a entrada no UK.</div>
+<h3 style="margin:14px 0 8px">🏙️ Dicas por cidade do jogo</h3>
+<div class="insight i-dica"><b>🇪🇸 Madrid</b>Bernabéu Tour · Prado (grátis nas últimas 2h) · Mercado de San Miguel · La Latina e Malasaña para comer barato.</div>
+<div class="insight i-dica"><b>🇪🇸 Barcelona</b>Sagrada Família e Park Güell: reserve online com antecedência — esgota. Bairro El Born. Atenção a batedores nas Ramblas.</div>
+<div class="insight i-dica"><b>🇵🇹 Lisboa</b>Belém (Torre + Pastéis + Jerónimos) · Bonde 28 · pôr do sol no Castelo. Mais barata que Madrid e Barcelona.</div>
+<h3 style="margin:14px 0 8px">⏱️ Linha do tempo — o que fazer e quando</h3>
+<table><tr><th style="text-align:left">Quando</th><th style="text-align:left">Ação</th></tr>
+<tr><td style="text-align:left"><b>Agora</b></td><td style="text-align:left">Abrir conta Wise (grátis) · fazer UK ETA (£20, gov.uk) · pesquisar cartão com milhas</td></tr>
+<tr><td style="text-align:left"><b>Jul/2026</b></td><td style="text-align:left">Primeiro aporte → Nubank Caixinha ou Sofisa 105% CDI</td></tr>
+<tr><td style="text-align:left"><b>Out/2026</b></td><td style="text-align:left">Fazer ETIAS em europa.eu/etias (€7)</td></tr>
+<tr><td style="text-align:left"><b>2027</b></td><td style="text-align:left">Migrar parte para Tesouro IPCA+ 2030 · abrir corretora se quiser mais opções</td></tr>
+<tr><td style="text-align:left"><b>2028</b></td><td style="text-align:left">Ativar conversão automática na Wise · converter em câmbio bom</td></tr>
+<tr><td style="text-align:left"><b>Set/2029</b></td><td style="text-align:left">Comprar passagem GRU→MAN + voo MAN→sede (9–12 meses antes = melhor preço)</td></tr>
+<tr><td style="text-align:left"><b>Dez/2029</b></td><td style="text-align:left">Comprar ingresso na primeira leva FIFA — ter o valor separado e não hesitar</td></tr>
+<tr><td style="text-align:left"><b>Jan/2030</b></td><td style="text-align:left">Reservar hotel com cancelamento grátis · fechar orçamento</td></tr>
+<tr><td style="text-align:left"><b>Jun–Jul/2030</b></td><td style="text-align:left">A Copa 🎉 · oitavas: início de julho · quartas: 5–8 de julho</td></tr></table>
+`,
+m_cidadania: `
+<div class="insight i-dica"><b>Linha familiar — via de atribuição (nacionalidade originária)</b>Maria de Ascenção Andrade (avó, Madeira · 1938) → Cleonice (mãe) → Victor Andrade Mioto (você).</div>
+<div class="insight i-neg"><b>A regra que evita gastar dobrado</b>Certidões valem <b>1 ano</b> para o processo; antecedente criminal vale só <b>90 dias</b>. Ordem certa: certidões e apostilas primeiro, criminal na <b>véspera do envio</b>. A apostila em si não vence — conta a data de emissão da certidão por baixo dela.</div>
+<h3 style="margin:14px 0 8px">Fase 0 · Conferência da cadeia ✔ FEITO</h3>
+<div class="insight i-pos"><b>Cadeia avó → mãe → você conferida, sem divergências</b>Nome de casada da avó (Maria Andrade Ferreira) já averbado em Portugal e presente na certidão da mãe. Mudança de nome da mãe coberta pela certidão de casamento. Única variação menor: "de/da Ascenção" — não deve travar.</div>
+<h3 style="margin:14px 0 8px">Fase 1 · Emitir 2ª vias em inteiro teor (janela de 1 ano)</h3>
+<div class="insight i-pos"><b>1. Sua certidão de nascimento ✔ FEITO 10/07 — R$ 93,77</b>9º R. Civil de Vila Mariana · Praça Oswaldo Cruz, 39, Paraíso · (11) 3059-2211 (novo endereço). Livro A-243, fls. 219-V, Termo 83.347 · inteiro teor reprográfica.</div>
+<div class="insight i-neutro"><b>2. Nascimento da mãe (Cleonice) — R$ 90–140 est.</b>26º R. Civil de Vila Prudente · Rua Ibitirama, 614 · (11) 2271-3300 (novo endereço). Livro 105, fls. 174v, nº 109.579. A via atual é breve relato — diga com todas as letras: <b>inteiro teor reprográfica</b>. Apostilam Haia no 2º andar, no mesmo dia.</div>
+<div class="insight i-neutro"><b>3. Casamento dos pais (recomendado) — R$ 90–140 est.</b>10º R. Civil do Belenzinho · Rua Conselheiro Cotegipe, 468 · (11) 2291-9486 (ligar antes). Cassio + Cleonice, 28/09/1991 (habilitação 22/08/1991). Sem livro/folha: localizam por nome + data. Comprova a mudança de nome da mãe. Apostilam no local.</div>
+<div class="insight i-dica"><b>Folha de campo</b>Todos abrem seg–sex 9h–17h e sáb 9h–12h · dinheiro, cartão ou PIX. Levar RG, CPF e as certidões antigas (agilizam a busca). Rota: Vila Prudente e Belenzinho são perto (ZL) e apostilam no balcão — dá para emitir + apostilar os dois num dia. Vila Mariana em outro momento. <b>Conferir a grafia dos nomes antes de sair.</b></div>
+<h3 style="margin:14px 0 8px">Fase 2 · Apostilar as certidões (Haia, sem tradução)</h3>
+<div class="insight i-pos"><b>Sua certidão ✔ FEITO 10/07 — R$ 164,14</b></div>
+<div class="insight i-neutro"><b>Da mãe (R$ 150–180 est.) e do casamento (R$ 150–180 est., se incluir)</b>Fazer na mesma visita aos cartórios que emitem — mesmo dia. Apostila em documento com nome errado é dinheiro perdido: conferir grafia antes.</div>
+<h3 style="margin:14px 0 8px">Fase 3 · Ligação efetiva + documentos de apoio (Lei 1/2026)</h3>
+<div class="insight i-neutro"><b>Provas de ligação à comunidade portuguesa (grátis a baixo custo · 1–3 semanas)</b>Como brasileiro nato, o conhecimento da língua é presumido. Reforce com um conjunto: familiares portugueses vivos, viagens/contatos com Portugal, Casa da Madeira/associações, cursos ou eventos culturais. Não precisa de todos.</div>
+<div class="insight i-neutro"><b>Cópia simples da certidão portuguesa da avó (grátis)</b>Dispensável (a conservatória obtém de ofício), mas ajuda a localizar o assento: Serra de Água, Ribeira Brava · assento 611/2012.</div>
+<div class="insight i-neutro"><b>Cópia autenticada + apostilada do RG ou passaporte (opcional · R$ 150–250)</b>Nem sempre exigido, mas alguns postos pedem depois — providenciar evita atraso.</div>
+<h3 style="margin:14px 0 8px">Fase 4 · Taxa + formulário</h3>
+<div class="insight i-neutro"><b>Pagar a taxa ao IRN — €175 (~R$ 1.000)</b>Cartão de crédito internacional na plataforma do IRN. Você recebe o código do processo e o impresso oficial — use o código em toda comunicação.</div>
+<div class="insight i-neutro"><b>Formulário + declaração de adesão (R$ 50–150)</b>Preencher, assinar, reconhecer firma e apostilar. A Lei 1/2026 exige a declaração de adesão aos princípios da República — confirmar o modelo atual no IRN antes de enviar.</div>
+<h3 style="margin:14px 0 8px">Fase 5 · Antecedentes criminais (A ÚLTIMA COISA — vale 90 dias)</h3>
+<div class="insight i-neg"><b>PF: grátis, online, na hora — gerar na VÉSPERA do envio</b>gov.br · se der erro por homônimo, ir presencial a uma unidade da PF. Registo criminal português não é preciso (a conservatória obtém de ofício).</div>
+<h3 style="margin:14px 0 8px">Fase 6 · Envio e acompanhamento</h3>
+<div class="insight i-neutro"><b>Montar o dossiê e enviar — R$ 150–300 · 5–10 dias de trânsito</b>Conservatória dos Registos Centrais (Lisboa) ou Arquivo Central do Porto (o Porto às vezes tem fila menor). Correio rastreável (ex.: DHL), número do processo no envelope, tudo dentro da validade no dia do envio.</div>
+<div class="insight i-neg"><b>Prazo final que cancela o processo</b>Após o reconhecimento da ligação efetiva, você é notificado para inscrever o nascimento em até <b>6 meses</b> — perdeu, cancelou. Análise total: ~18 meses a 4 anos.</div>
+<h3 style="margin:14px 0 8px">💰 Resumo de custos</h3>
+<table><tr><th style="text-align:left">Item</th><th>Valor</th></tr>
+<tr><td style="text-align:left">3 certidões 2ª via (1 já real: R$ 93,77)</td><td>R$ 274–374</td></tr>
+<tr><td style="text-align:left">3 apostilas (1 já real: R$ 164,14)</td><td>R$ 464–524</td></tr>
+<tr><td style="text-align:left">Firma + apostila do formulário</td><td>R$ 50–150</td></tr>
+<tr><td style="text-align:left">Antecedentes PF</td><td>grátis</td></tr>
+<tr><td style="text-align:left">Taxa da conservatória</td><td>€ 175</td></tr>
+<tr><td style="text-align:left">Envio internacional</td><td>R$ 150–300</td></tr>
+<tr><td style="text-align:left"><b>Total aproximado</b></td><td><b>~R$ 1.950–2.350</b></td></tr></table>
+<div class="insight i-dica" style="margin-top:10px"><b>Dicas para adiantar</b>Pedir sempre "inteiro teor reprográfica" (não a digitada nem breve relato) · presencial rende mais (no site sai só PDF) · antecedente da PF na véspera · conferir grafia antes de apostilar · guardar cópias digitais na nuvem · o primo (processo 2018/19) ajuda a localizar registros, mas a ligação efetiva é exigência nova de 2026. Preparo no Brasil: 3–6 semanas. <span class="mini">Painel de organização pessoal, não é aconselhamento jurídico — confirmar impresso e exigências atuais no IRN antes de enviar.</span></div>
+`
+};
+
+const METAS_DEF = () => ([
+  {id:'m_reserva', nome:'Reserva de emergência', alvo:null, prazo:'2027-05-31', cor:'liq', aportes:[],
+   notas:'Alvo dinâmico: 6 × o total estimado das suas contas do mês — se as contas mudarem, o alvo acompanha sozinho.'},
+  {id:'m_cidadania', nome:'Cidadania portuguesa', alvo:2350, prazo:'2027-06-30', cor:'meta', aportes:[{data:'2026-07-10',valor:257.91,obs:'certidão (93,77) + apostila (164,14) — já pagos'}],
+   notas:'Custo real do processo por conta própria: R$ 1.950–2.350 (3 certidões + apostilas + taxa €175 + envio). ATENÇÃO AOS PRAZOS: suas certidões emitidas em 10/07/2026 valem 1 ano — o dossiê deve ser enviado até ~jun/2027. Antecedente criminal (grátis) só na véspera do envio: vale 90 dias.'},
+  {id:'m_faculdade', nome:'Faculdade (a decidir)', alvo:6000, prazo:'2027-08-31', cor:'ganho', aportes:[],
+   notas:'Decisão adiada para depois da trilha de estudos (mar/2027) — com portfólio pronto fica mais claro se vale a pena e qual instituição. Não compete pelo orçamento até lá.'},
+  {id:'m_copa', nome:'Copa do Mundo 2030', alvo:50000, prazo:'2030-06-01', cor:'custo', aportes:[],
+   notas:'Meta de segurança do plano: total projetado 2030 fica entre R$ 33.000 e 75.000 (fator Copa 1,5–2× sobre valores de hoje). Viagem de 15 dias: GRU → Manchester, base na casa do primo em Warrington. Abra o plano completo para roteiro, custos, investimento e linha do tempo.'},
+]);
 const DEF = {
   config:{ gas:6.29, consumo:10, aluguel:545.79, meta:3500, tema:'farol',
            gasHist:[{data:'2026-06-13',preco:6.29}] },
   dias:{}, // 'YYYY-MM-DD': {km,horas,corr,bruto,dinFisico,pixQR,pixPJ,gas,promo,notas}
-  contas:{ mes:'', itens:CONTAS_DEF(), hist:[] }
+  contas:{ mes:'', itens:CONTAS_DEF(), hist:[] },
+  metas:{ itens: METAS_DEF() }
 };
 let S = load();
 /* semear histórico (não sobrescreve edições do usuário; respeita exclusões) */
 (function(){
+  /* metas: init + migrações */
+  if(!S.metas || !S.metas.itens) S.metas={itens:METAS_DEF()};
+  (m=>{ if(m && m.alvo===8000){ m.alvo=50000; m.notas='Meta de segurança do plano: total projetado 2030 fica entre R$ 33.000 e 75.000 (fator Copa 1,5–2× sobre valores de hoje). Viagem de 15 dias: GRU → Manchester, base na casa do primo em Warrington. Abra o plano completo para roteiro, custos, investimento e linha do tempo.'; } })(S.metas.itens.find(x=>x.id==='m_copa'));
   /* contas: init + virada de mês automática com arquivamento */
   if(!S.contas || !S.contas.itens) S.contas={mes:'',itens:CONTAS_DEF(),hist:[]};
   S.contas.hist = S.contas.hist || [];
@@ -308,8 +420,9 @@ function setTab(t){ tab=t; render(); }
 function render(){
   const m=document.getElementById('main');
   if(sec==='contas'){ rContas(); return; }
+  if(sec==='metas'){ rMetas(); return; }
   if(sec!=='desempenho'){
-    const nomes={metas:['🎯','Metas pessoais'],estudos:['📚','Planejamento de estudos']};
+    const nomes={estudos:['📚','Planejamento de estudos']};
     const [ico,nome]=nomes[sec];
     m.innerHTML=`<div class="placeholder"><div class="big">${ico}</div><h1>${nome}</h1><p style="margin-top:8px">Esta seção será construída na próxima etapa do projeto.</p></div>`;
     return;
@@ -884,6 +997,113 @@ function addCompraSmoke(id){
 function desfazerSmoke(id){
   const c=S.contas.itens.find(x=>x.id===id);
   if(c&&c.compras&&c.compras.length){c.compras.pop();save();render();}
+}
+
+
+/* ================= SEÇÃO: METAS ================= */
+function metaAlvo(m){
+  if(m.alvo!=null) return m.alvo;
+  if(m.id==='m_reserva') return 6 * S.contas.itens.reduce((s,c)=>s+(c.val||0),0);
+  return 0;
+}
+function metaGuardado(m){ return (m.aportes||[]).reduce((s,a)=>s+a.valor,0); }
+function rMetas(){
+  const mEl=document.getElementById('main');
+  const metas=S.metas.itens;
+  const totAlvo=metas.reduce((s,m)=>s+metaAlvo(m),0);
+  const totGuard=metas.reduce((s,m)=>s+metaGuardado(m),0);
+  const H=new Date(hoje()+'T12:00');
+
+  mEl.innerHTML=`
+  <h1>Metas pessoais</h1>
+  <div class="sub">aportes manuais · aporte sugerido calculado pelo prazo · sem integração automática com o líquido</div>
+  <div class="grid g3">
+    <div class="kpi meta"><div class="lbl">Alvo total das metas</div><div class="val">${R$(totAlvo)}</div><div class="det">${metas.length} metas ativas</div></div>
+    <div class="kpi ganho"><div class="lbl">Guardado até hoje</div><div class="val">${R$(totGuard)}</div><div class="det">${(100*totGuard/(totAlvo||1)).toFixed(1)}% do total</div></div>
+    <div class="kpi liq"><div class="lbl">Falta guardar</div><div class="val">${R$(Math.max(0,totAlvo-totGuard))}</div><div class="det">somando todas as metas</div></div>
+  </div>
+  <div style="height:14px"></div>
+  ${metas.map(mt=>{
+    const alvo=metaAlvo(mt), guard=metaGuardado(mt), falta=Math.max(0,alvo-guard);
+    const pct=alvo?Math.min(100,100*guard/alvo):0;
+    const prazoD=new Date(mt.prazo+'T12:00');
+    const diasRest=Math.max(0,Math.round((prazoD-H)/86400000));
+    const semRest=Math.max(1,diasRest/7), mesRest=Math.max(1,diasRest/30.44);
+    const apSem=falta/semRest, apMes=falta/mesRest;
+    const concluida=falta<=0;
+    const atrasada=!concluida && diasRest===0;
+    return `<div class="card" style="margin-bottom:14px;border-left:4px solid var(--c-${mt.cor})">
+      <h3><span class="dot ${mt.cor}"></span>${mt.nome}
+        <span class="mini" style="margin-left:auto">prazo ${prazoD.toLocaleDateString('pt-BR')} · ${diasRest>0?diasRest+' dias restantes':'prazo vencido'}</span></h3>
+      <div class="hbar"><div class="hb-top"><span><b>${R$(guard)}</b> de ${R$(alvo)}${mt.alvo==null?' <span class="pill" style="background:var(--c-liq-bg);color:var(--c-liq-t)">alvo dinâmico: 6× contas</span>':''}</span><span><b>${pct.toFixed(1)}%</b></span></div>
+        <div class="hb-track"><div class="hb-fill" style="width:${pct}%;background:var(--c-${mt.cor})"></div></div></div>
+      ${concluida?
+        `<div class="insight i-pos" style="margin-top:10px"><b>Meta concluída 🎉</b>Você guardou o alvo completo.</div>`:
+        `<div class="mini" style="margin:8px 0 10px">Aporte sugerido para chegar lá: <b>${R$(apSem)}/semana</b> ou <b>${R$(apMes)}/mês</b>${atrasada?' · <span class="neg">prazo vencido — ajuste o prazo ou reforce os aportes</span>':''}</div>`}
+      ${mt.notas?`<div class="mini" style="margin-bottom:10px;padding:8px 10px;background:var(--surface2);border-radius:8px">${mt.notas}</div>`:''}
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+        <div><label>Valor do aporte (R$)</label><input type="number" step="0.01" id="ap-${mt.id}" style="width:120px"></div>
+        <div style="flex:1;min-width:140px"><label>Observação (opcional)</label><input type="text" id="apobs-${mt.id}" placeholder="ex: sobra da semana"></div>
+        <button class="btn p" onclick="addAporte('${mt.id}')">＋ Guardei</button>
+        <button class="btn s" onclick="toggleAportes('${mt.id}')">histórico (${(mt.aportes||[]).length})</button>
+        ${PLANOS[mt.id]?`<button class="btn s" style="border-color:var(--c-${mt.cor})" onclick="verPlano('${mt.id}')">📋 Plano completo</button>`:''}
+        <button class="btn d" style="padding:8px 12px" onclick="removerMeta('${mt.id}')" title="remover meta">✕</button>
+      </div>
+      <div id="hist-${mt.id}" style="display:none;margin-top:10px">
+        ${(mt.aportes||[]).length?`<div class="tbl-wrap"><table><tr><th>Data</th><th>Valor</th><th>Obs</th><th></th></tr>
+          ${mt.aportes.map((a,i)=>`<tr><td>${new Date(a.data+'T12:00').toLocaleDateString('pt-BR')}</td><td class="pos">${R$(a.valor)}</td><td style="text-align:left">${a.obs||''}</td><td><button class="btn d" style="padding:3px 8px;font-size:11px" onclick="removerAporte('${mt.id}',${i})">✕</button></td></tr>`).join('')}
+        </table></div>`:'<div class="mini">Nenhum aporte ainda.</div>'}
+      </div>
+    </div>`;
+  }).join('')}
+  <div class="card">
+    <h3><span class="dot meta"></span>Adicionar meta</h3>
+    <div class="frow">
+      <div><label>Nome</label><input type="text" id="nm-nome" placeholder="ex: Notebook novo"></div>
+      <div><label>Alvo (R$)</label><input type="number" step="0.01" id="nm-alvo"></div>
+      <div><label>Prazo</label><input type="date" id="nm-prazo"></div>
+    </div>
+    <button class="btn p" onclick="novaMeta()">＋ Adicionar</button>
+  </div>`;
+}
+function verPlano(id){
+  const m=S.metas.itens.find(x=>x.id===id); const conteudo=PLANOS[id];
+  if(!conteudo) return;
+  const bg=document.createElement('div'); bg.className='modal-bg';
+  bg.innerHTML=`<div class="modal grande"><div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><h3 style="font-size:16px;margin:0">${m?m.nome:''} — plano completo</h3><button class="btn s" style="margin-left:auto;padding:6px 12px" id="md-x">✕ fechar</button></div><div class="m-body">${conteudo}</div></div>`;
+  document.body.appendChild(bg);
+  bg.querySelector('#md-x').onclick=()=>bg.remove();
+  bg.onclick=e=>{ if(e.target===bg) bg.remove(); };
+}
+function addAporte(id){
+  const m=S.metas.itens.find(x=>x.id===id); if(!m)return;
+  const v=+document.getElementById('ap-'+id).value;
+  if(!v){toast('Digite o valor');return;}
+  m.aportes=m.aportes||[];
+  m.aportes.push({data:hoje(),valor:v,obs:document.getElementById('apobs-'+id).value.trim()});
+  save(); render(); toast(R$(v)+' guardado em '+m.nome+' ✔');
+}
+function removerAporte(id,i){
+  const m=S.metas.itens.find(x=>x.id===id); if(!m)return;
+  pedirConfirmacao('Remover o aporte de <b>'+R$(m.aportes[i].valor)+'</b> de '+new Date(m.aportes[i].data+'T12:00').toLocaleDateString('pt-BR')+'?',
+    ()=>{ m.aportes.splice(i,1); save(); render(); });
+}
+function toggleAportes(id){
+  const el=document.getElementById('hist-'+id);
+  el.style.display = el.style.display==='none'?'':'none';
+}
+function removerMeta(id){
+  const m=S.metas.itens.find(x=>x.id===id); if(!m)return;
+  pedirConfirmacao('Remover a meta <b>'+m.nome+'</b>?<br><span class="mini">O histórico de aportes dela será perdido.</span>',
+    ()=>{ S.metas.itens=S.metas.itens.filter(x=>x.id!==id); save(); render(); toast(m.nome+' removida'); });
+}
+function novaMeta(){
+  const nome=document.getElementById('nm-nome').value.trim();
+  const alvo=+document.getElementById('nm-alvo').value||0;
+  const prazo=document.getElementById('nm-prazo').value;
+  if(!nome||!alvo||!prazo){toast('Preencha nome, alvo e prazo');return;}
+  S.metas.itens.push({id:'m'+Date.now(),nome,alvo,prazo,cor:'corr',aportes:[],notas:''});
+  save(); render(); toast(nome+' adicionada ✔');
 }
 
 /* ================= INIT ================= */
