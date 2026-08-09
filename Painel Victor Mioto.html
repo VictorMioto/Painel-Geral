@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR" data-theme="farol">
+<html lang="pt-BR" data-theme="escuro">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,38 +16,27 @@
   --radius:16px; --radius-sm:10px;
   --font-num:'Segoe UI', system-ui, sans-serif;
 }
-[data-theme="farol"]{
-  --bg:#12151d; --bg2:#1a1f2b; --surface:#222838; --surface2:#2a3145;
-  --txt:#eef1f8; --txt2:#98a2b8; --border:#323a52;
-  --c-ganho:#4ade80; --c-ganho-bg:#14351f; --c-ganho-t:#a7f3c4;
-  --c-custo:#fbbf24; --c-custo-bg:#3a2c0a; --c-custo-t:#fde68a;
-  --c-liq:#38bdf8; --c-liq-bg:#0c2c3d; --c-liq-t:#bae6fd;
-  --c-meta:#a78bfa; --c-meta-bg:#2a1f47; --c-meta-t:#ddd6fe;
-  --c-corr:#22d3ee; --c-corr-bg:#0b3038; --c-corr-t:#a5f3fc;
-  --c-alerta:#fb7185; --c-alerta-bg:#3d1420; --c-alerta-t:#fecdd3;
-  --shadow:0 4px 14px rgba(0,0,0,.35);
+[data-theme="escuro"]{
+  --bg:#0a0a0c; --bg2:#101014; --surface:#141417; --surface2:#1c1c21;
+  --txt:#f2f2f4; --txt2:#9a9aa6; --border:#28282f;
+  --c-ganho:#4ade80; --c-ganho-bg:#10231a; --c-ganho-t:#a7f3c4;
+  --c-custo:#f5b942; --c-custo-bg:#26200e; --c-custo-t:#fde68a;
+  --c-liq:#45b8f5; --c-liq-bg:#0e2230; --c-liq-t:#bae6fd;
+  --c-meta:#a78bfa; --c-meta-bg:#1f1a30; --c-meta-t:#ddd6fe;
+  --c-corr:#38d0e0; --c-corr-bg:#0e2529; --c-corr-t:#a5f3fc;
+  --c-alerta:#f87171; --c-alerta-bg:#2a1416; --c-alerta-t:#fecdd3;
+  --shadow:0 1px 2px rgba(0,0,0,.4);
 }
-[data-theme="sol"]{
-  --bg:#faf3e3; --bg2:#f3e9d2; --surface:#fffdf7; --surface2:#fbf5e6;
-  --txt:#33302a; --txt2:#7d7666; --border:#e5dcc5;
-  --c-ganho:#1a9e50; --c-ganho-bg:#d9f5e1; --c-ganho-t:#0d6b33;
-  --c-custo:#d97706; --c-custo-bg:#feedcd; --c-custo-t:#92500a;
-  --c-liq:#0e7dc2; --c-liq-bg:#d9eefc; --c-liq-t:#085a8f;
-  --c-meta:#7c3aed; --c-meta-bg:#ece2fd; --c-meta-t:#5b21b6;
-  --c-corr:#0d9498; --c-corr-bg:#d3f4f5; --c-corr-t:#0a6b6e;
-  --c-alerta:#dc2646; --c-alerta-bg:#fde0e5; --c-alerta-t:#a3122d;
-  --shadow:0 3px 10px rgba(120,90,20,.12);
-}
-[data-theme="pista"]{
-  --bg:#eef2f7; --bg2:#e4eaf2; --surface:#ffffff; --surface2:#f5f8fc;
-  --txt:#1c2433; --txt2:#64708a; --border:#dbe2ee;
-  --c-ganho:#059669; --c-ganho-bg:#d7f5ea; --c-ganho-t:#065f46;
-  --c-custo:#e1583e; --c-custo-bg:#fde5df; --c-custo-t:#9a3521;
-  --c-liq:#2563eb; --c-liq-bg:#dde8fe; --c-liq-t:#1e42af;
-  --c-meta:#9333ea; --c-meta-bg:#f0e2fd; --c-meta-t:#6b21a8;
-  --c-corr:#0891b2; --c-corr-bg:#d5f1f8; --c-corr-t:#155e75;
-  --c-alerta:#e11d48; --c-alerta-bg:#fdd9e1; --c-alerta-t:#9f1239;
-  --shadow:0 3px 10px rgba(30,50,90,.10);
+[data-theme="claro"]{
+  --bg:#f6f6f7; --bg2:#efeff1; --surface:#ffffff; --surface2:#f0f0f2;
+  --txt:#191920; --txt2:#5f5f6b; --border:#e4e4e9;
+  --c-ganho:#0f9d4f; --c-ganho-bg:#e2f6ea; --c-ganho-t:#0a6b36;
+  --c-custo:#c07a00; --c-custo-bg:#faf0da; --c-custo-t:#8a5800;
+  --c-liq:#0b7fc9; --c-liq-bg:#e0f0fa; --c-liq-t:#085a8f;
+  --c-meta:#7c3aed; --c-meta-bg:#efe7fd; --c-meta-t:#5b21b6;
+  --c-corr:#0d94a8; --c-corr-bg:#dcf3f6; --c-corr-t:#0a6b78;
+  --c-alerta:#dc2f45; --c-alerta-bg:#fbe3e7; --c-alerta-t:#a3122d;
+  --shadow:0 1px 3px rgba(20,20,40,.08);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{-webkit-text-size-adjust:100%}
@@ -90,12 +79,14 @@ h1{font-size:22px;letter-spacing:-.4px;margin-bottom:2px}
 .kpi .lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;opacity:.85}
 .kpi .val{font-size:26px;font-weight:800;letter-spacing:-.5px;margin:4px 0 2px;font-variant-numeric:tabular-nums}
 .kpi .det{font-size:12px;opacity:.8}
-.kpi.ganho{background:var(--c-ganho-bg);color:var(--c-ganho-t);border-color:var(--c-ganho)}
-.kpi.custo{background:var(--c-custo-bg);color:var(--c-custo-t);border-color:var(--c-custo)}
-.kpi.liq{background:var(--c-liq-bg);color:var(--c-liq-t);border-color:var(--c-liq)}
-.kpi.meta{background:var(--c-meta-bg);color:var(--c-meta-t);border-color:var(--c-meta)}
-.kpi.corr{background:var(--c-corr-bg);color:var(--c-corr-t);border-color:var(--c-corr)}
-.kpi.alerta{background:var(--c-alerta-bg);color:var(--c-alerta-t);border-color:var(--c-alerta)}
+.kpi{background:var(--surface);border:1px solid var(--border);border-left-width:3px}
+.kpi .lbl{color:var(--txt2)} .kpi .det{color:var(--txt2)}
+.kpi.ganho{border-left-color:var(--c-ganho)} .kpi.ganho .val{color:var(--c-ganho)}
+.kpi.custo{border-left-color:var(--c-custo)} .kpi.custo .val{color:var(--c-custo)}
+.kpi.liq{border-left-color:var(--c-liq)} .kpi.liq .val{color:var(--c-liq)}
+.kpi.meta{border-left-color:var(--c-meta)} .kpi.meta .val{color:var(--c-meta)}
+.kpi.corr{border-left-color:var(--c-corr)} .kpi.corr .val{color:var(--c-corr)}
+.kpi.alerta{border-left-color:var(--c-alerta)} .kpi.alerta .val{color:var(--c-alerta)}
 .card h3{font-size:14px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px}
 .dot{width:10px;height:10px;border-radius:3px;display:inline-block}
 .dot.ganho{background:var(--c-ganho)} .dot.custo{background:var(--c-custo)} .dot.liq{background:var(--c-liq)}
@@ -139,10 +130,6 @@ tr:hover td{background:var(--surface2)}
 .insight.i-dica{border-color:var(--c-liq)} .insight.i-neutro{border-color:var(--c-meta)}
 .mini{font-size:12px;color:var(--txt2)}
 .sep{height:1px;background:var(--border);margin:14px 0}
-.theme-opt{display:flex;gap:10px;align-items:center;padding:12px;border:2px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;margin-bottom:10px;background:var(--surface2)}
-.theme-opt.on{border-color:var(--c-liq)}
-.sw{display:flex;gap:4px}
-.sw i{width:18px;height:18px;border-radius:5px;display:block}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px}
 .modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;max-width:360px;width:100%;box-shadow:var(--shadow)}
 .modal .m-msg{font-size:14px;line-height:1.5;margin-bottom:16px}
@@ -175,7 +162,7 @@ tr:hover td{background:var(--surface2)}
     <button class="nav-btn" data-sec="metas"><span class="ico">🎯</span>Metas</button>
     <button class="nav-btn" data-sec="contas"><span class="ico">💳</span>Contas</button>
     <button class="nav-btn" data-sec="estudos"><span class="ico">📚</span>Estudos</button>
-    <div class="foot">v2.1 · dados Uber<br>05/01 → 03/08/2026</div>
+    <div class="foot">v3.0 · dados Uber<br>05/01 → 03/08/2026</div>
   </nav>
   <main id="main"></main>
 </div>
@@ -453,6 +440,22 @@ function migrarAntigo(obj){
 const R$ = v => (v==null||isNaN(v))?'–':'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const N1 = v => (v==null||isNaN(v))?'–':Number(v).toLocaleString('pt-BR',{maximumFractionDigits:1});
 const esc = s => String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+/* horas: interno sempre DECIMAL (8.2167 = 8h13); entrada e exibição sempre RELÓGIO (8:13) */
+const fmtH = h => { if(h==null||isNaN(h)) return '–'; let hh=Math.floor(h), mm=Math.round((h-hh)*60); if(mm===60){hh++;mm=0;} return hh+':'+String(mm).padStart(2,'0'); };
+function parseHoras(str){
+  const s=String(str??'').trim(); if(!s) return null;
+  const m=s.match(/^(\d{1,2})[:.,](\d{1,2})$/);
+  if(m){ const hh=+m[1], mm=+m[2]; if(mm<=59) return Math.round((hh+mm/60)*10000)/10000; }
+  const v=+s.replace(',','.'); return isNaN(v)?null:v;
+}
+function migrarHorasRelogio(dias){ /* dias digitados à mão (pós 08/07) estavam em hh.mm de relógio */
+  for(const [d,v] of Object.entries(dias||{})){
+    if(d>'2026-07-08' && v.horas!=null){
+      const hh=Math.floor(v.horas), mm=Math.round((v.horas-hh)*100);
+      if(mm<=59) v.horas=Math.round((hh+mm/60)*10000)/10000;
+    }
+  }
+}
 const fmtD = d => { const [a,m,dd]=d.split('-'); return `${dd}/${m}`; };
 const fmtDL = d => { const dt=new Date(d+'T12:00'); return dt.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'}); };
 function segundaDe(dstr){ const d=new Date(dstr+'T12:00'); const wd=(d.getDay()+6)%7; d.setDate(d.getDate()-wd); return dataLocal(d); }
@@ -520,7 +523,7 @@ function rVisao(){
     <div class="kpi ganho"><div class="lbl">Bruto · semana atual</div><div class="val">${R$(sw.bruto)}</div><div class="det">${semana.length} dia(s) registrado(s)</div></div>
     <div class="kpi custo"><div class="lbl">Custos · semana</div><div class="val">${R$(sw.km*custoKm()+S.config.aluguel)}</div><div class="det">gasolina ${R$(sw.km*custoKm())} + aluguel ${R$(S.config.aluguel)}</div></div>
     <div class="kpi liq"><div class="lbl">Líquido estimado · semana</div><div class="val">${R$(liqSem)}</div><div class="det">bruto − gasolina − aluguel Moover</div></div>
-    <div class="kpi corr"><div class="lbl">Rodagem · semana</div><div class="val">${N1(sw.km)} km</div><div class="det">${sw.corr} corridas · ${N1(sw.horas)}h</div></div>
+    <div class="kpi corr"><div class="lbl">Rodagem · semana</div><div class="val">${N1(sw.km)} km</div><div class="det">${sw.corr} corridas · ${fmtH(sw.horas)}h</div></div>
   </div>
   <div style="height:14px"></div>
   <div class="grid g2">
@@ -659,9 +662,9 @@ function rEstrategia(){
     {t:'Saída às 6h (manhã nobre)',s:'6h–8h paga R$ 0,77–0,79/min — 1 a 2 corridas premium a mais por dia ≈ +R$ 400–500/mês.',
      ok:null, det:'não dá para medir pelo registro — anote nas notas do dia se saiu 6h'},
     {t:'Estender até ~19h (ter/sex)',s:'Hora extra custa só gasolina (~R$ 7) e rende ~R$ 32 líquidos. Alvo: ≥ 9h online em terças e sextas.',
-     ok: sw.horas && sw.dias ? (sw.horas/sw.dias)>=8.6 : null, det: sw.dias?('média desta semana: '+N1(sw.horas/sw.dias)+'h/dia'):'sem registros na semana'},
+     ok: sw.horas && sw.dias ? (sw.horas/sw.dias)>=8.6 : null, det: sw.dias?('média desta semana: '+fmtH(sw.horas/sw.dias)+'/dia'):'sem registros na semana'},
     {t:'Sábado até 12h',s:'Sábado estendido ≈ +R$ 350–400/mês. Alvo: ≥ 5h no sábado.',
-     ok: sw.sab? (sw.sab.horas||0)>=5 : (dow<6?null:false), det: sw.sab?('sábado registrado: '+N1(sw.sab.horas)+'h · '+R$(sw.sab.bruto)):'sábado ainda não registrado esta semana'},
+     ok: sw.sab? (sw.sab.horas||0)>=5 : (dow<6?null:false), det: sw.sab?('sábado registrado: '+fmtH(sw.sab.horas)+' · '+R$(sw.sab.bruto)):'sábado ainda não registrado esta semana'},
     {t:'Régua Corridex: R$/km ≥ 3,20',s:'Aceite pelo R$/min e R$/km, não pelo valor da corrida. Exceção: perto de fechar desafio, aceite borderline.',
      ok: (rkm!=null && rkm>=3.2)? true : null, det: rkm?('R$/km da semana: '+rkm.toFixed(2)):'registre km e bruto para medir'},
     {t:'Reserva para mês de 5 terças',s:'Próximos: '+(prox.length?prox.map(m=>m.slice(5)+'/'+m.slice(0,4)).join(' e '):'nenhum nos próximos 6 meses')+'. Guarde ~R$ 135/semana no mês anterior.',
@@ -741,7 +744,7 @@ function rRegistro(){
     <div class="frow">
       <div><label>Data</label><input type="date" id="f-data" value="${hoje()}"></div>
       <div><label>KM rodados</label><input type="number" id="f-km" step="1" placeholder="ex: 95"></div>
-      <div><label>Horas online</label><input type="number" id="f-horas" step="0.1" placeholder="ex: 8.5"></div>
+      <div><label>Horas online</label><input type="text" id="f-horas" inputmode="numeric" placeholder="ex: 8:30"></div>
       <div><label>Corridas</label><input type="number" id="f-corr" step="1" placeholder="ex: 32"></div>
     </div>
     <div class="frow">
@@ -780,7 +783,7 @@ function rRegistro(){
           const liq=tb-tg-alq;
           const head=`<tr style="background:var(--c-liq-bg)"><td colspan="4" style="font-weight:800;color:var(--c-liq-t)">${nomeMes(m)} · ${lista.length} dias · ${N1(tk)} km</td><td style="font-weight:700;color:var(--c-liq-t)">${R$(tb)}</td><td colspan="2" style="color:var(--c-liq-t)">⛽ ${R$(tg)} · aluguel ${R$(alq)}</td><td colspan="2" style="font-weight:800" class="${liq>=0?'pos':'neg'}">líq. ${R$(liq)}</td><td></td></tr>`;
           const rows=lista.map(([d,v])=>{const k=diaCalc(d,v);
-            return `<tr><td>${fmtDL(d)}</td><td>${N1(v.km)}</td><td>${N1(v.horas)}</td><td>${v.corr??'–'}</td><td><b>${R$(v.bruto)}</b></td><td>${R$(v.dinFisico)}</td><td>${R$(v.pixPJ)}</td><td>${R$(v.gas)}</td><td class="${toneRkm(k.rkm)}">${k.rkm?k.rkm.toFixed(2):'–'}</td>
+            return `<tr><td>${fmtDL(d)}</td><td>${N1(v.km)}</td><td>${fmtH(v.horas)}</td><td>${v.corr??'–'}</td><td><b>${R$(v.bruto)}</b></td><td>${R$(v.dinFisico)}</td><td>${R$(v.pixPJ)}</td><td>${R$(v.gas)}</td><td class="${toneRkm(k.rkm)}">${k.rkm?k.rkm.toFixed(2):'–'}</td>
             <td><button class="btn s" style="padding:4px 9px;font-size:11px" onclick="editarDia('${d}')">✎</button> <button class="btn d" style="padding:4px 9px;font-size:11px" onclick="apagarDia('${d}')">✕</button></td></tr>`;}).join('');
           return head+rows;
         }).join('');
@@ -801,7 +804,7 @@ function num(id){ const v=document.getElementById(id).value; return v===''?null:
 function salvarDia(){
   const d=document.getElementById('f-data').value;
   if(!d){toast('Escolha a data');return;}
-  S.dias[d]={ km:num('f-km'),horas:num('f-horas'),corr:num('f-corr'),bruto:num('f-bruto'),
+  S.dias[d]={ km:num('f-km'),horas:parseHoras(document.getElementById('f-horas').value),corr:num('f-corr'),bruto:num('f-bruto'),
     dinFisico:num('f-fis'),pixQR:(S.dias[d]&&S.dias[d].pixQR)||null,pixPJ:num('f-pj'),gas:num('f-gas'),promo:num('f-promo'),
     notas:document.getElementById('f-notas').value };
   save(); toast('Dia salvo ✔'); render();
@@ -812,8 +815,9 @@ function editarDia(d,silent){
   setTimeout(()=>{
     const v=S.dias[d]||{};
     document.getElementById('f-data').value=d;
-    const map={ 'f-km':'km','f-horas':'horas','f-corr':'corr','f-bruto':'bruto','f-fis':'dinFisico','f-pj':'pixPJ','f-gas':'gas','f-promo':'promo' };
+    const map={ 'f-km':'km','f-corr':'corr','f-bruto':'bruto','f-fis':'dinFisico','f-pj':'pixPJ','f-gas':'gas','f-promo':'promo' };
     for(const [id,k] of Object.entries(map)) document.getElementById(id).value=v[k]??'';
+    document.getElementById('f-horas').value = v.horas!=null ? fmtH(v.horas) : '';
     document.getElementById('f-notas').value=v.notas||'';
     previewDia();
     if(!silent&&!S.dias[d]) toast('Data sem registro — preencha e salve');
@@ -947,9 +951,6 @@ function rInsights(){
 /* ================= ABA: PARÂMETROS ================= */
 function rConfig(){
   const c=document.getElementById('tabc');
-  const temas=[['farol','Farol Noturno','escura — painel de carro à noite',['#12151d','#4ade80','#fbbf24','#38bdf8','#a78bfa']],
-               ['sol','Zona Leste Sol','clara e quente — cores de rua paulistana',['#faf3e3','#1a9e50','#d97706','#0e7dc2','#7c3aed']],
-               ['pista','Pista Limpa','clara e fria — visual de app de banco',['#eef2f7','#059669','#e1583e','#2563eb','#9333ea']]];
   c.innerHTML=`
   <div class="grid g2">
   <div class="card">
@@ -969,12 +970,8 @@ function rConfig(){
     <div class="mini" style="margin-top:6px">Ao salvar um novo preço de gasolina, ele entra automaticamente no histórico.</div>
   </div>
   <div class="card">
-    <h3><span class="dot meta"></span>Tema do painel</h3>
-    ${temas.map(([id,nome,desc,cores])=>`
-      <div class="theme-opt ${S.config.tema===id?'on':''}" onclick="setTema('${id}')">
-        <div class="sw">${cores.map(h=>`<i style="background:${h}"></i>`).join('')}</div>
-        <div><b>${nome}</b><div class="mini">${desc}</div></div>
-      </div>`).join('')}
+    <h3><span class="dot meta"></span>Aparência</h3>
+    <button class="btn s" onclick="setTema(S.config.tema==='escuro'?'claro':'escuro')">${S.config.tema==='escuro'?'☀️ Mudar para o tema claro':'🌙 Mudar para o tema escuro'}</button>
     <div class="sep"></div>
     <h3><span class="dot liq"></span>Backup dos dados</h3>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -1028,7 +1025,9 @@ function importar(ev){
         const novo = ehAntigo ? migrarAntigo(obj) : {...clone(DEF),...obj,config:{...DEF.config,...obj.config}};
         novo.dias = {...S.dias, ...novo.dias};
         novo.histDel = Array.isArray(obj.histDel) ? obj.histDel : (S.histDel||[]);
-        S=novo; S.config.tema=S.config.tema||'farol';
+        if(!(obj.config&&obj.config.horasV3)){ migrarHorasRelogio(novo.dias); }
+        novo.config.horasV3=true;
+        S=novo; S.config.tema=mapTema(S.config.tema);
         save(); document.documentElement.dataset.theme=S.config.tema;
         toast(ehAntigo?'JSON antigo importado e migrado ✔':'JSON importado ✔ (backup do estado anterior guardado)'); render();
       });
@@ -1326,7 +1325,13 @@ function toggleSemana(k){
 }
 
 /* ================= INIT ================= */
-document.documentElement.dataset.theme=S.config.tema||'farol';
+/* migração v3: temas antigos → escuro/claro */
+const mapTema = t => t==='farol' ? 'escuro' : (t==='sol'||t==='pista') ? 'claro' : (t||'escuro');
+if(S.config.tema !== mapTema(S.config.tema)){ S.config.tema = mapTema(S.config.tema); save(); }
+S.config.tema = S.config.tema || 'escuro';
+/* migração v3: horas digitadas como relógio (pós 08/07) → decimal interno */
+if(!S.config.horasV3){ migrarHorasRelogio(S.dias); S.config.horasV3 = true; save(); }
+document.documentElement.dataset.theme=S.config.tema;
 render();
 </script>
 </body>
