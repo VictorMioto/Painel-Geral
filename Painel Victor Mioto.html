@@ -118,6 +118,25 @@ tr:hover td{background:var(--surface2)}
 .bar .bwrap{flex:1;width:100%;display:flex;align-items:flex-end}
 .bar .b{width:100%;border-radius:5px 5px 0 0;min-height:3px;transition:.3s}
 .bar .t{font-size:9px;color:var(--txt2);white-space:nowrap;height:14px;margin-top:4px;overflow:visible}
+/* --- hero do salário --- */
+.hero{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px 24px;display:grid;grid-template-columns:1fr auto;gap:22px;align-items:start;margin-bottom:14px}
+.hero .eyebrow{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--txt2)}
+.hero .big{font-size:clamp(30px,6vw,42px);font-weight:800;letter-spacing:-1.2px;line-height:1.05;margin:5px 0 3px;color:var(--c-ganho);font-variant-numeric:tabular-nums}
+.hero .apos{font-size:13px;color:var(--txt2)} .hero .apos b{color:var(--txt);font-weight:700}
+.hero .track{position:relative;height:7px;background:var(--surface2);border-radius:6px;margin-top:15px;max-width:540px}
+.hero .track .fill{position:absolute;inset:0 auto 0 0;background:var(--c-ganho);border-radius:6px}
+.hero .track .pace{position:absolute;top:-3px;width:2px;height:13px;background:var(--txt2);border-radius:2px}
+.hero .leg{display:flex;justify-content:space-between;font-size:11px;color:var(--txt2);margin-top:7px;max-width:540px;font-variant-numeric:tabular-nums}
+.hero .ano{border-left:1px solid var(--border);padding-left:22px;min-width:158px}
+.hero .ano .v{font-size:20px;font-weight:800;letter-spacing:-.4px;margin:3px 0 1px;color:var(--c-liq);font-variant-numeric:tabular-nums}
+.insights-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin-bottom:14px}
+.ins{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--c-liq);border-radius:var(--radius);box-shadow:var(--shadow);padding:12px 15px;display:flex;gap:11px;align-items:flex-start}
+.ins.pos{border-left-color:var(--c-ganho)} .ins.gas{border-left-color:var(--c-custo)} .ins.alerta{border-left-color:var(--c-alerta)} .ins.meta{border-left-color:var(--c-meta)}
+.ins .ic{font-size:17px;line-height:1.3}
+.ins b{display:block;font-size:12.5px;margin-bottom:2px;letter-spacing:-.1px;color:var(--txt)}
+.ins span{font-size:11.5px;color:var(--txt2);line-height:1.45}
+.ins .num{font-variant-numeric:tabular-nums;color:var(--txt);font-weight:600}
+@media(max-width:640px){.hero{grid-template-columns:1fr}.hero .ano{border-left:none;border-top:1px solid var(--border);padding-left:0;padding-top:14px}}
 .hbar{margin-bottom:9px}
 .hbar .hb-top{display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px}
 .hbar .hb-track{height:10px;background:var(--surface2);border-radius:6px;overflow:hidden}
@@ -162,7 +181,7 @@ tr:hover td{background:var(--surface2)}
     <button class="nav-btn" data-sec="metas"><span class="ico">🎯</span>Metas</button>
     <button class="nav-btn" data-sec="contas"><span class="ico">💳</span>Contas</button>
     <button class="nav-btn" data-sec="estudos"><span class="ico">📚</span>Estudos</button>
-    <div class="foot">v3.0 · dados Uber<br>05/01 → 03/08/2026</div>
+    <div class="foot">v3.1 · dados Uber<br>05/01 → 03/08/2026</div>
   </nav>
   <main id="main"></main>
 </div>
@@ -475,6 +494,139 @@ function diaCalc(d,v){
 }
 function toneRkm(r){ return r==null?'':(r>=3.5?'pos':(r<3?'neg':'')); }
 
+/* consumo real (km/l) a partir dos últimos 90 dias com abastecimento pago */
+function consumoReal(){
+  let km=0, litros=0;
+  const hoje90 = (()=>{ const d=new Date(hoje()+'T12:00'); d.setDate(d.getDate()-90); return dataLocal(d); })();
+  for(const [d,v] of Object.entries(S.dias)){
+    if(d<hoje90 || d>hoje()) continue;
+    if(v.km) km+=v.km;
+    if(v.gas){ const preco=precoGasEm(d); litros += v.gas/preco; }
+  }
+  return (km>0 && litros>0) ? km/litros : null;
+}
+function precoGasEm(data){
+  const h=(S.config.gasHist||[]).filter(g=>g.data<=data).sort((a,b)=>a.data<b.data?1:-1);
+  return h.length ? h[0].preco : S.config.gas;
+}
+/* custo/km efetivo: usa consumo real se houver, senão o configurado */
+function custoKmReal(){ const c=consumoReal(); return S.config.gas / (c||S.config.consumo); }
+
+/* média de bruto por dia da semana (0=dom..6=sáb), a partir de TODO o histórico */
+function mediaBrutoPorDiaSemana(){
+  const soma={}, cnt={};
+  for(const [d,v] of Object.entries(S.dias)){
+    if(v.bruto==null) continue;
+    const w=new Date(d+'T12:00').getDay();
+    soma[w]=(soma[w]||0)+v.bruto; cnt[w]=(cnt[w]||0)+1;
+  }
+  const med={};
+  for(let w=0;w<=6;w++) med[w]=cnt[w]?soma[w]/cnt[w]:0;
+  return {med, cnt};
+}
+
+/* líquido operacional do ano: bruto registrado − gasolina paga − aluguéis (terças) ocorridos */
+function liquidoAno(){
+  const ano=hoje().slice(0,4);
+  let bruto=0, gas=0;
+  for(const [d,v] of Object.entries(S.dias)){
+    if(d.slice(0,4)!==ano || d>hoje()) continue;
+    bruto+=v.bruto||0; gas+=v.gas||0;
+  }
+  // terças de 05/01 (ou 1º dia) até hoje
+  let tercas=0;
+  const ini=new Date(ano+'-01-01T12:00'), fim=new Date(hoje()+'T12:00');
+  for(let dt=new Date(ini); dt<=fim; dt.setDate(dt.getDate()+1)) if(dt.getDay()===2) tercas++;
+  return { bruto, gas, aluguel:tercas*S.config.aluguel, tercas, liq: bruto-gas-tercas*S.config.aluguel };
+}
+
+/* MOTOR DE INSIGHTS: avalia regras contra o histórico e devolve as mais relevantes */
+function gerarInsights(ctx){
+  const {sw, brutoMes, mesAtual, H, dow} = ctx;
+  const nomesDia=['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
+  const {med} = mediaBrutoPorDiaSemana();
+  const out=[];
+  const R=v=>R$(v), NUM=v=>'<span class="num">'+v+'</span>';
+
+  // dias da semana já trabalhados e seus valores
+  const diasSem=Object.entries(S.dias).filter(([d])=>d>=ctx.segAtual&&d<=H).sort();
+
+  // 1) desempenho de hoje/último dia vs média daquele dia da semana
+  if(diasSem.length){
+    const [ud,uv]=diasSem[diasSem.length-1];
+    const w=new Date(ud+'T12:00').getDay();
+    const mediaW=med[w]||0;
+    if(mediaW>0 && (uv.bruto||0)>0){
+      const dif=100*((uv.bruto/mediaW)-1);
+      if(dif>=8) out.push({p:90,cl:'pos',ic:'🔥',t:nomesDia[w].charAt(0).toUpperCase()+nomesDia[w].slice(1)+' acima da média',
+        s:'Você fez '+NUM(R(uv.bruto))+' — '+Math.round(dif)+'% acima da sua média de '+nomesDia[w]+'s ('+R(mediaW)+'). Continue nesse ritmo.'});
+      else if(dif<=-12) out.push({p:70,cl:'alerta',ic:'📉',t:nomesDia[w].charAt(0).toUpperCase()+nomesDia[w].slice(1)+' abaixo da média',
+        s:'Fez '+NUM(R(uv.bruto))+', '+Math.round(-dif)+'% abaixo da sua média de '+nomesDia[w]+'s ('+R(mediaW)+'). Um dia mais fraco acontece.'});
+    }
+  }
+
+  // 2) projeção da semana pelas médias dos dias que faltam (a partir de qua)
+  if(diasSem.length>=1 && dow>=1){
+    const feitos=new Set(diasSem.map(([d])=>new Date(d+'T12:00').getDay()));
+    let proj=sw.bruto;
+    for(let w=1;w<=6;w++) if(!feitos.has(w) && w<=(dow===0?6:dow>=1?6:6)){ /* completa até sábado */ }
+    // soma médias dos dias seg..sáb ainda não trabalhados nesta semana
+    for(let w=1;w<=6;w++){ if(!feitos.has(w)) proj+=med[w]||0; }
+    if(diasSem.length>=2){
+      out.push({p:80,cl:'',ic:'📈',t:'Semana projetada em ~'+R(proj),
+        s:'Somando suas médias dos dias que faltam, a semana caminha para '+NUM(R(proj))+' brutos.'});
+    }
+  }
+
+  // 3) melhor dia da semana estatístico (dica para o dia seguinte)
+  let melhorW=1, melhorV=0;
+  for(let w=1;w<=6;w++) if((med[w]||0)>melhorV){ melhorV=med[w]; melhorW=w; }
+  if(melhorV>0 && dow!==melhorW){
+    out.push({p:50,cl:'meta',ic:'🎯',t:nomesDia[melhorW].charAt(0).toUpperCase()+nomesDia[melhorW].slice(1)+' é seu dia mais forte',
+      s:'Historicamente rende '+NUM(R(melhorV))+' em média — vale priorizar mais horas nesse dia.'});
+  }
+
+  // 4) consumo real vs configurado
+  const cr=consumoReal();
+  if(cr){
+    const dif=cr-S.config.consumo;
+    if(Math.abs(dif)>=0.6){
+      out.push({p:55,cl:'gas',ic:'⛽',t:'Consumo real: '+cr.toFixed(1).replace('.',',')+' km/l',
+        s: dif>0
+          ? 'Seu Mobi roda mais que os '+S.config.consumo+' km/l configurados — custo real de '+NUM(R(custoKmReal()))+'/km, melhor do que o painel assumia.'
+          : 'Está rodando abaixo dos '+S.config.consumo+' km/l configurados ('+NUM(R(custoKmReal()))+'/km). Pode ser trânsito, pneu ou filtro.'});
+    }
+  }
+
+  // 5) gasolina que falta para terminar a semana (se ainda há dias e o tanque não foi enchido hoje)
+  if(dow>=1 && dow<5){
+    const med2=med;
+    let kmFalta=0;
+    const feitos=new Set(diasSem.map(([d])=>new Date(d+'T12:00').getDay()));
+    // usa média de KM por dia da semana
+    const kmMed=(()=>{const s={},c={};for(const [d,v] of Object.entries(S.dias)){if(!v.km)continue;const w=new Date(d+'T12:00').getDay();s[w]=(s[w]||0)+v.km;c[w]=(c[w]||0)+1;}const m={};for(let w=1;w<=6;w++)m[w]=c[w]?s[w]/c[w]:0;return m;})();
+    for(let w=1;w<=6;w++) if(!feitos.has(w)) kmFalta+=kmMed[w]||0;
+    const gasFalta=kmFalta*custoKmReal();
+    if(gasFalta>20){
+      out.push({p:40,cl:'gas',ic:'🔋',t:'~'+R(gasFalta)+' de gasolina até fechar a semana',
+        s:'Estimativa pelos ~'+Math.round(kmFalta)+' km que você costuma rodar nos dias que faltam.'});
+    }
+  }
+
+  // 6) meta do mês — ritmo
+  const diaMes=+H.slice(8,10), diasNoMes=new Date(+mesAtual.slice(0,4),+mesAtual.slice(5,7),0).getDate();
+  const pctEsper=100*diaMes/diasNoMes, pctReal=100*brutoMes/S.config.meta;
+  if(brutoMes>0){
+    if(pctReal>=pctEsper+5) out.push({p:60,cl:'pos',ic:'🚀',t:'Adiantado na meta do mês',
+      s:'Você já fez '+NUM(pctReal.toFixed(0)+'%')+' da meta com '+diaMes+' de '+diasNoMes+' dias — acima do ritmo esperado.'});
+    else if(pctReal<=pctEsper-8) out.push({p:45,cl:'',ic:'📅',t:'Um pouco atrás do ritmo da meta',
+      s:'No dia '+diaMes+' o ritmo esperado seria ~'+Math.round(pctEsper)+'%; você está em '+NUM(pctReal.toFixed(0)+'%')+'. Dá para recuperar.'});
+  }
+
+  out.sort((a,b)=>b.p-a.p);
+  return out.slice(0,3);
+}
+
 /* ================= NAVEGAÇÃO ================= */
 let sec='desempenho', tab='visao', filtroMes='';
 document.querySelectorAll('.nav-btn').forEach(b=>b.onclick=()=>{
@@ -505,52 +657,77 @@ function render(){
 function rVisao(){
   const c=document.getElementById('tabc');
   const dias=Object.entries(S.dias).sort((a,b)=>a[0]<b[0]?1:-1);
-  const H=hoje(), segAtual=segundaDe(H);
+  const H=hoje(), segAtual=segundaDe(H), mesAtual=H.slice(0,7);
+  const dow=new Date(H+'T12:00').getDay();
+  const ckm=custoKmReal();
+
+  // semana atual
   const semana=dias.filter(([d])=>d>=segAtual&&d<=H);
-  let sw={bruto:0,km:0,liq:0,corr:0,horas:0,fis:0,pj:0,gas:0};
-  semana.forEach(([d,v])=>{const k=diaCalc(d,v);sw.bruto+=k.bruto;sw.km+=k.km;sw.liq+=k.liq;sw.corr+=v.corr||0;sw.horas+=v.horas||0;sw.fis+=v.dinFisico||0;sw.pj+=v.pixPJ||0;sw.gas+=v.gas||0;});
-  const liqSem=sw.liq-S.config.aluguel;
-  const mesAtual=H.slice(0,7);
-  let brutoMes=0,gasMes=0,kmMes=0,diasMes=0;
-  dias.forEach(([d,v])=>{ if(d.slice(0,7)===mesAtual&&d<=H){const k=diaCalc(d,v);brutoMes+=k.bruto;gasMes+=v.gas||0;kmMes+=k.km;diasMes++;} });
+  let sw={bruto:0,km:0,corr:0,horas:0,fis:0,pj:0,gas:0};
+  semana.forEach(([d,v])=>{sw.bruto+=v.bruto||0;sw.km+=v.km||0;sw.corr+=v.corr||0;sw.horas+=v.horas||0;sw.fis+=v.dinFisico||0;sw.pj+=v.pixPJ||0;sw.gas+=v.gas||0;});
+
+  // mês atual
+  let brutoMes=0,gasMes=0,kmMes=0,diasMes=0,corrMes=0;
+  dias.forEach(([d,v])=>{ if(d.slice(0,7)===mesAtual&&d<=H){brutoMes+=v.bruto||0;gasMes+=v.gas||0;kmMes+=v.km||0;corrMes+=v.corr||0;diasMes++;} });
   const tercasPassadas=tercasMes(mesAtual,true);
-  const liqMesReal=brutoMes - gasMes - tercasPassadas*S.config.aluguel;
+  // SALÁRIO (herói): bruto − gasolina paga  |  linha de apoio: após aluguéis já pagos
+  const salarioMes = brutoMes - gasMes;
+  const liqCaixaMes = salarioMes - tercasPassadas*S.config.aluguel;
   const pctMeta=Math.min(100, 100*brutoMes/S.config.meta);
+  const diaMes=+H.slice(8,10), diasNoMes=new Date(+mesAtual.slice(0,4),+mesAtual.slice(5,7),0).getDate();
+  const pctPace=Math.min(100,100*diaMes/diasNoMes);
+
+  const ano=liquidoAno();
+  const insights=gerarInsights({sw, brutoMes, mesAtual, H, dow, segAtual});
   const ult=dias.slice(0,7);
 
   c.innerHTML=`
-  <div class="grid g4">
-    <div class="kpi ganho"><div class="lbl">Bruto · semana atual</div><div class="val">${R$(sw.bruto)}</div><div class="det">${semana.length} dia(s) registrado(s)</div></div>
-    <div class="kpi custo"><div class="lbl">Custos · semana</div><div class="val">${R$(sw.km*custoKm()+S.config.aluguel)}</div><div class="det">gasolina ${R$(sw.km*custoKm())} + aluguel ${R$(S.config.aluguel)}</div></div>
-    <div class="kpi liq"><div class="lbl">Líquido estimado · semana</div><div class="val">${R$(liqSem)}</div><div class="det">bruto − gasolina − aluguel Moover</div></div>
-    <div class="kpi corr"><div class="lbl">Rodagem · semana</div><div class="val">${N1(sw.km)} km</div><div class="det">${sw.corr} corridas · ${fmtH(sw.horas)}h</div></div>
+  <div class="hero">
+    <div>
+      <div class="eyebrow">Salário de ${nomeMesExt(mesAtual)} · bruto − gasolina paga</div>
+      <div class="big">${R$(salarioMes)}</div>
+      <div class="apos">após <b>${tercasPassadas} aluguel${tercasPassadas===1?'':'éis'}</b> já pago${tercasPassadas===1?'':'s'}: <b>${R$(liqCaixaMes)}</b> · ${diasMes} dia(s) · ${N1(kmMes)} km · ${corrMes} corridas</div>
+      <div class="track"><div class="fill" style="width:${pctMeta}%"></div><div class="pace" style="left:${pctPace}%" title="ritmo esperado até hoje"></div></div>
+      <div class="leg"><span>${pctMeta.toFixed(0)}% da meta mensal</span><span>ritmo até dia ${diaMes}: ${pctPace.toFixed(0)}%</span><span>${R$(S.config.meta)}</span></div>
+    </div>
+    <div class="ano">
+      <div class="eyebrow">Líquido no ano</div>
+      <div class="v">${R$(ano.liq)}</div>
+      <div class="mini">bruto − gasolina − ${ano.tercas} aluguéis</div>
+      <div class="eyebrow" style="margin-top:12px">Consumo real</div>
+      <div class="v" style="font-size:16px;color:var(--txt)">${consumoReal()?consumoReal().toFixed(1).replace('.',',')+' km/l':'sem dados'}</div>
+    </div>
   </div>
+
+  ${insights.length?`<div class="insights-grid">${insights.map(i=>`
+    <div class="ins ${i.cl}"><div class="ic">${i.ic}</div><div><b>${i.t}</b><span>${i.s}</span></div></div>`).join('')}</div>`:''}
+
+  <div class="grid g4">
+    <div class="kpi ganho"><div class="lbl">Bruto · semana</div><div class="val">${R$(sw.bruto)}</div><div class="det">${semana.length} dia(s) · projeção viva nos insights</div></div>
+    <div class="kpi liq"><div class="lbl">Líquido · semana</div><div class="val">${R$(sw.bruto-sw.km*ckm-S.config.aluguel)}</div><div class="det">bruto − gasolina − aluguel</div></div>
+    <div class="kpi corr"><div class="lbl">Rodagem · semana</div><div class="val">${N1(sw.km)} km</div><div class="det">${sw.corr} corridas · ${fmtH(sw.horas)}h</div></div>
+    <div class="kpi custo"><div class="lbl">Custo/km real</div><div class="val">${R$(ckm)}</div><div class="det">gasolina ${R$(S.config.gas)} ÷ ${(consumoReal()||S.config.consumo).toFixed(1).replace('.',',')} km/l</div></div>
+  </div>
+
   <div style="height:14px"></div>
   <div class="grid g2">
-    <div class="card">
-      <h3><span class="dot meta"></span>Meta do mês (${R$(S.config.meta)} bruto)</h3>
-      <div class="hbar"><div class="hb-top"><span>${R$(brutoMes)}</span><span class="mini">${pctMeta.toFixed(0)}%</span></div>
-      <div class="hb-track"><div class="hb-fill" style="width:${pctMeta}%;background:var(--c-meta)"></div></div></div>
-      <div class="mini">Líquido real no mês até agora: <b>${R$(liqMesReal)}</b> (${diasMes} dias · ${N1(kmMes)} km · gasolina paga ${R$(gasMes)} · ${tercasPassadas} terça(s) de aluguel já ocorrida(s))</div>
-    </div>
     <div class="card">
       <h3><span class="dot liq"></span>Formas de recebimento · semana</h3>
       ${[['💵 Dinheiro físico (por fora)',sw.fis,'ganho'],['🏦 Pix conta PJ (por fora)',sw.pj,'meta'],['Carteira Uber (cartão + Pix QR)',Math.max(0,sw.bruto-sw.fis-sw.pj),'corr']]
         .map(([l,v,cl])=>{const p=sw.bruto?100*v/sw.bruto:0;return `<div class="hbar"><div class="hb-top"><span>${l}</span><span>${R$(v)} · ${p.toFixed(0)}%</span></div><div class="hb-track"><div class="hb-fill" style="width:${p}%;background:var(--c-${cl})"></div></div></div>`;}).join('')}
     </div>
-  </div>
-  <div style="height:14px"></div>
-  <div class="card">
-    <h3><span class="dot corr"></span>Últimos dias registrados</h3>
-    <div class="tbl-wrap"><table>
-      <tr><th>Dia</th><th>KM</th><th>Corridas</th><th>Bruto</th><th>R$/km</th><th>Líquido dia*</th></tr>
-      ${ult.length?ult.map(([d,v])=>{const k=diaCalc(d,v);return `<tr><td>${fmtDL(d)}</td><td>${N1(v.km)}</td><td>${v.corr??'–'}</td><td>${R$(k.bruto)}</td><td class="${toneRkm(k.rkm)}">${k.rkm?k.rkm.toFixed(2):'–'}</td><td class="${k.liq>=0?'pos':'neg'}">${R$(k.liq)}</td></tr>`;}).join(''):'<tr><td colspan="6" class="mini">Nenhum dia registrado ainda — comece na aba Registro diário.</td></tr>'}
-    </table></div>
-    <div class="mini" style="margin-top:8px">*Líquido do dia = bruto − gasolina consumida (km × ${R$(custoKm())}/km). O aluguel entra no fechamento semanal.</div>
+    <div class="card">
+      <h3><span class="dot corr"></span>Últimos dias registrados</h3>
+      <div class="tbl-wrap"><table>
+        <tr><th>Dia</th><th>KM</th><th>Corr.</th><th>Bruto</th><th>R$/km</th><th>Líq. dia*</th></tr>
+        ${ult.length?ult.map(([d,v])=>{const bruto=v.bruto||0,km=v.km||0,liq=bruto-km*ckm,rkm=km?bruto/km:null;return `<tr><td>${fmtDL(d)}</td><td>${N1(km)}</td><td>${v.corr??'–'}</td><td>${R$(bruto)}</td><td class="${toneRkm(rkm)}">${rkm?rkm.toFixed(2):'–'}</td><td class="${liq>=0?'pos':'neg'}">${R$(liq)}</td></tr>`;}).join(''):'<tr><td colspan="6" class="mini">Nenhum dia registrado ainda.</td></tr>'}
+      </table></div>
+      <div class="mini" style="margin-top:8px">*Líquido do dia = bruto − gasolina do dia (km × ${R$(ckm)}/km, consumo real). O aluguel entra no salário do mês acima.</div>
+    </div>
   </div>`;
 }
-
-
+const MESES_EXT=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+function nomeMesExt(m){ return MESES_EXT[+m.slice(5,7)-1]; }
 
 /* ================= ABASTECIMENTO SUGERIDO ================= */
 function kmMedioPorDiaSemana(){
