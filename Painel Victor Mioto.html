@@ -1239,50 +1239,180 @@ function apagarDia(d){
     ()=>{ delete S.dias[d]; S.histDel=S.histDel||[]; if(HIST[d]&&!S.histDel.includes(d))S.histDel.push(d); save(); render(); toast('Dia apagado'); });
 }
 
+
+/* ================= ETAPA 5 · HELPERS DE ANÁLISE ================= */
+
+/* janela de análise em dias — controlada pelos botões da aba Análises */
+let janelaAnalise = 180;
+function setJanela(n){ janelaAnalise = n; render(); }
+
+/* dias registrados dentro da janela, já com os derivados calculados */
+function diasDaJanela(dias){
+  const corte=(()=>{ const d=new Date(hoje()+'T12:00'); d.setDate(d.getDate()-(dias||janelaAnalise)); return dataLocal(d); })();
+  const out=[];
+  for(const [d,v] of Object.entries(S.dias)){
+    if(d<corte || d>hoje() || !v.bruto) continue;
+    out.push({ d, w:new Date(d+'T12:00').getDay(), dia:+d.slice(8,10),
+               bruto:v.bruto, km:v.km||null, horas:v.horas||null,
+               corr:v.corr||null, promo:v.promo||0 });
+  }
+  return out.sort((a,b)=>a.d<b.d?-1:1);
+}
+
+/* jornada cheia = dia que não foi truncado por feriado, revisão ou meio expediente */
+function jornadaCheia(x){ return x.w===6 ? x.bruto>=50 : x.bruto>=150; }
+
+/* evolução mês a mês a partir dos SEUS registros */
+function evolucaoMensal(){
+  const m={};
+  for(const [d,v] of Object.entries(S.dias)){
+    if(!v.bruto || d>hoje()) continue;
+    const k=d.slice(0,7);
+    m[k]=m[k]||{dias:0,bruto:0,promo:0,km:0,kmB:0,h:0,hB:0,corr:0};
+    const a=m[k];
+    a.dias++; a.bruto+=v.bruto; a.promo+=v.promo||0; a.corr+=v.corr||0;
+    if(v.km){ a.km+=v.km; a.kmB+=v.bruto; }
+    if(v.horas){ a.h+=v.horas; a.hB+=v.bruto; }
+  }
+  return Object.entries(m).sort().map(([k,a])=>({
+    mes:k, dias:a.dias, brutoDia:a.bruto/a.dias, exPromoDia:(a.bruto-a.promo)/a.dias,
+    rkm:a.km?a.kmB/a.km:null, rh:a.h?a.hB/a.h:null,
+    corrDia:a.corr/a.dias, bruto:a.bruto, promo:a.promo
+  }));
+}
+
+/* efeito do dia do mês (ciclo de pagamento de salários).
+   Compara cada dia com a média do seu próprio dia da semana, para que
+   a distribuição de segundas/sextas dentro do mês não distorça o resultado. */
+function efeitoDiaDoMes(){
+  const base=diasDaJanela(365).filter(jornadaCheia).filter(x=>x.w>=1&&x.w<=5);
+  if(base.length<40) return null;
+  const somaW={}, cntW={};
+  base.forEach(x=>{ somaW[x.w]=(somaW[x.w]||0)+x.bruto; cntW[x.w]=(cntW[x.w]||0)+1; });
+  const faixas=[['1 a 7',1,7],['8 a 15',8,15],['16 a 23',16,23],['24 ao fim',24,31]];
+  return { n:base.length, faixas: faixas.map(([rot,a,b])=>{
+    const L=base.filter(x=>x.dia>=a&&x.dia<=b);
+    if(!L.length) return {rot,n:0,med:null,desvio:null};
+    const desvios=L.map(x=>x.bruto-(somaW[x.w]/cntW[x.w]));
+    return { rot, n:L.length, med:pct(L.map(x=>x.bruto),.5), desvio:desvios.reduce((s,v)=>s+v,0)/desvios.length };
+  })};
+}
+
+/* R$/h de relógio por faixa horária, combinando a curva dos extratos
+   com a sua mediana atual de cada dia da semana */
+function produtividadePorFaixa(){
+  const acc={};
+  for(let w=1;w<=6;w++){
+    const f=FAIXAS.dias[w], st=statsDiaSemana(w);
+    if(!f||!st) continue;
+    f.blocos.forEach(([nome,a,b,fr])=>{
+      if(fr<=0) return;
+      const k=a+'-'+b;
+      acc[k]=acc[k]||{a,b,nome,soma:0,peso:0};
+      acc[k].soma += (st.med*fr)/(b-a) * st.n;
+      acc[k].peso += st.n;
+    });
+  }
+  return Object.values(acc).sort((x,y)=>x.a-y.a).map(x=>({...x, rh:x.soma/x.peso}));
+}
+
+/* confronto painel × extrato oficial, semana a semana */
+function conferePainelExtrato(){
+  return UBER.semanas.filter(w=>w.rend>0).map(w=>{
+    let painel=0, dias=0;
+    for(const [d,v] of Object.entries(S.dias)){
+      if(d>=w.ini && d<w.fim && v.bruto){ painel+=v.bruto; dias++; }
+    }
+    return { ini:w.ini, fim:w.fim, extrato:w.rend, painel, dias, dif:painel-w.rend };
+  });
+}
+
+/* última data coberta pelos extratos carregados */
+function fimDosExtratos(){ return UBER.semanas[UBER.semanas.length-1].fim; }
+
+
 /* ================= ABA: ANÁLISES ================= */
 function rAnalises(){
   const c=document.getElementById('tabc');
-  const semanas=UBER.semanas.filter(w=>w.rend>0);
-  const maxR=Math.max(...semanas.map(w=>w.rend));
-  const maxH=Math.max(...UBER.hora.map(h=>h.v));
-  const maxD=Math.max(...UBER.diaSemana.map(d=>d.v/d.dias));
-  const maxT=Math.max(...UBER.ticket.map(t=>t.n));
-  const mes={};
-  for(const [d,v] of Object.entries(UBER.diario)){ const m=d.slice(0,7); mes[m]=mes[m]||{v:0,n:0}; mes[m].v+=v.v; mes[m].n+=v.n; }
-  const maxM=Math.max(...Object.values(mes).map(m=>m.v));
+  const J=diasDaJanela().filter(jornadaCheia);
+  const ev=evolucaoMensal();
+  const efe=efeitoDiaDoMes();
+  const prod=produtividadePorFaixa();
+  const nomesDia=['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
+  const janelas=[[90,'90 dias'],[180,'6 meses'],[3650,'tudo']];
+
+  /* --- por dia da semana, a partir dos SEUS registros --- */
+  const semana=[];
+  for(let w=1;w<=6;w++){ const st=statsDiaSemana(w, janelaAnalise); if(st) semana.push({w,...st}); }
+  const maxSem=Math.max(...semana.map(x=>x.p75), 1);
+
+  const maxRh=Math.max(...prod.map(x=>x.rh), 1);
+  const maxBr=Math.max(...ev.map(x=>x.brutoDia), 1);
+
   c.innerHTML=`
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
+    <span class="mini">Janela dos seus registros:</span>
+    ${janelas.map(([n,r])=>`<button class="tab ${janelaAnalise===n?'on':''}" onclick="setJanela(${n})">${r}</button>`).join('')}
+    <span class="mini">· ${J.length} jornadas cheias na amostra</span>
+  </div>
+
   <div class="grid g2">
-    <div class="card"><h3><span class="dot ganho"></span>Rendimentos por semana (extratos Uber)</h3>
-      <div class="bars">${semanas.map((w,i)=>`<div class="bar" title="Semana ${fmtD(w.ini)}: ${R$(w.rend)} · ${w.corr} corridas"><div class="bwrap"><div class="b" style="height:${Math.max(3,100*w.rend/maxR)}%;background:${w.rend===maxR?'var(--c-meta)':'var(--c-ganho)'}"></div></div><span class="t">${i%3===0?fmtD(w.ini):''}</span></div>`).join('')}</div>
-      <div class="mini" style="margin-top:8px">Passe o mouse/dedo na barra para ver o valor. Roxa = melhor semana (09/03: R$ 2.136,51). Semana de 11/05 não aparece (você não trabalhou).</div>
+
+    <div class="card">
+      <h3><span class="dot liq"></span>Quanto rende cada faixa do dia</h3>
+      <div class="bars">${prod.map(x=>`<div class="bar" title="${x.nome} · ${fmtH(x.a)}–${fmtH(x.b)}: ${R$(x.rh)}/h"><div class="bwrap"><div class="b" style="height:${Math.max(3,100*x.rh/maxRh)}%;background:${x.rh>=maxRh*0.9?'var(--c-ganho)':x.rh<=maxRh*0.65?'var(--c-alerta)':'var(--c-liq)'}"></div></div><span class="t">${fmtH(x.a)}</span></div>`).join('')}</div>
+      <div class="mini" style="margin-top:8px">R$ por hora de <b>relógio</b> — inclui espera e deslocamento, que é o que você realmente vive. Não confunda com o total ganho na faixa: a faixa das 8h tem mais corridas, mas paga menos por hora que a das 6:30.</div>
     </div>
-    <div class="card"><h3><span class="dot liq"></span>Ganhos por hora de início da corrida</h3>
-      <div class="bars">${UBER.hora.map(h=>`<div class="bar" title="${h.h}h: ${h.n} corridas, ${R$(h.v)}, ticket ${R$(h.v/h.n)}"><div class="bwrap"><div class="b" style="height:${Math.max(3,100*h.v/maxH)}%;background:${h.h<=8?'var(--c-ganho)':h.h>=13&&h.h<=15?'var(--c-custo)':'var(--c-liq)'}"></div></div><span class="t">${h.h}h</span></div>`).join('')}</div>
-      <div class="mini" style="margin-top:8px"><span class="pill" style="background:var(--c-ganho-bg);color:var(--c-ganho-t)">verde = manhã cedo (melhor R$/min)</span> <span class="pill" style="background:var(--c-custo-bg);color:var(--c-custo-t)">amarelo = tarde (ticket mais baixo)</span></div>
+
+    <div class="card">
+      <h3><span class="dot corr"></span>Por dia da semana (seus registros)</h3>
+      ${semana.map(x=>`<div class="hbar"><div class="hb-top"><span style="text-transform:capitalize">${nomesDia[x.w]} <span class="mini">(${x.n} dias${x.corr?' · ~'+x.corr+' corridas':''})</span></span><span><b>${R$(x.med)}</b> <span class="mini">${R$(x.p25)} a ${R$(x.p75)}</span></span></div>
+        <div class="hb-track" style="position:relative">
+          <div class="hb-fill" style="width:${100*x.p75/maxSem}%;background:var(--c-corr);opacity:.35"></div>
+          <div class="hb-fill" style="width:${100*x.med/maxSem}%;background:var(--c-corr);margin-top:-10px"></div>
+        </div></div>`).join('')}
+      <div class="mini">Barra sólida = mediana (o dia normal). Barra clara = até o p75 (1 em cada 4 dias). Mediana, e não média, para promoção antiga não inflar o alvo.</div>
     </div>
-    <div class="card"><h3><span class="dot corr"></span>Média por dia da semana (R$/dia trabalhado)</h3>
-      ${UBER.diaSemana.map(d=>{const md=d.v/d.dias;return `<div class="hbar"><div class="hb-top"><span style="text-transform:capitalize">${d.d} <span class="mini">(${d.dias} dias)</span></span><span><b>${R$(md)}</b> · ${(d.n/d.dias).toFixed(0)} corr/dia</span></div><div class="hb-track"><div class="hb-fill" style="width:${100*md/maxD}%;background:var(--c-corr)"></div></div></div>`;}).join('')}
+
+    <div class="card">
+      <h3><span class="dot meta"></span>Efeito do ciclo de pagamento</h3>
+      ${!efe?'<div class="mini">Ainda não há jornadas cheias suficientes para separar o efeito.</div>':`
+      ${efe.faixas.map(f=>{
+        if(!f.n) return '';
+        const cor = f.desvio>=8?'var(--c-ganho)':(f.desvio<=-8?'var(--c-alerta)':'var(--c-liq)');
+        return `<div class="hbar"><div class="hb-top"><span>Dias ${f.rot} <span class="mini">(${f.n} dias)</span></span>
+          <span><b>${R$(f.med)}</b> · <b style="color:${cor}">${f.desvio>=0?'+':''}${R$(f.desvio)}</b></span></div>
+          <div class="hb-track"><div class="hb-fill" style="width:${Math.min(100,50+f.desvio*1.6)}%;background:${cor}"></div></div></div>`;
+      }).join('')}
+      <div class="mini">Desvio em relação à média do <b>mesmo dia da semana</b> — sem esse ajuste, um mês com mais segundas na primeira quinzena falsearia o resultado. Base: ${efe.n} dias úteis cheios de 12 meses.</div>`}
     </div>
-    <div class="card"><h3><span class="dot meta"></span>Distribuição do valor por corrida (${UBER.totais.corridas.toLocaleString('pt-BR')} corridas)</h3>
-      ${UBER.ticket.map(t=>`<div class="hbar"><div class="hb-top"><span>${t.f}</span><span>${t.n} corridas · ${(100*t.n/UBER.totais.corridas).toFixed(0)}%</span></div><div class="hb-track"><div class="hb-fill" style="width:${100*t.n/maxT}%;background:var(--c-meta)"></div></div></div>`).join('')}
-      <div class="mini">Ticket médio ${R$(UBER.totais.ticketMedio)} · duração média ${UBER.totais.durMedia} min · ${R$(UBER.totais.rpmin)}/min rodando</div>
+
+    <div class="card">
+      <h3><span class="dot ganho"></span>Evolução mês a mês</h3>
+      <div class="tbl-wrap"><table>
+        <tr><th>Mês</th><th>Dias</th><th>Bruto/dia</th><th>Sem promo</th><th>R$/km</th><th>R$/h</th><th>Corr/dia</th></tr>
+        ${ev.map(x=>`<tr><td>${x.mes.slice(5)}/${x.mes.slice(2,4)}</td><td>${x.dias}</td>
+          <td><b>${R$(x.brutoDia)}</b></td><td>${R$(x.exPromoDia)}</td>
+          <td class="${toneRkm(x.rkm)}">${x.rkm?x.rkm.toFixed(2):'–'}</td>
+          <td>${x.rh?x.rh.toFixed(2):'–'}</td><td>${x.corrDia.toFixed(1)}</td></tr>`).join('')}
+      </table></div>
+      <div class="mini">A coluna "sem promo" mostra o que veio só de corrida. É ela que revela a tendência real quando a Uber liga e desliga promoção.</div>
     </div>
-    <div class="card"><h3><span class="dot ganho"></span>Rendimentos por mês</h3>
-      ${Object.entries(mes).map(([m,v])=>`<div class="hbar"><div class="hb-top"><span>${m.slice(5)}/${m.slice(2,4)}</span><span><b>${R$(v.v)}</b> · ${v.n} corridas</span></div><div class="hb-track"><div class="hb-fill" style="width:${100*v.v/maxM}%;background:var(--c-ganho)"></div></div></div>`).join('')}
-      <div class="mini">Somente rendimento de corridas (promoções e desafios ficam de fora aqui).</div>
+
+    <div class="card">
+      <h3><span class="dot ganho"></span>Bruto por dia, mês a mês</h3>
+      <div class="bars">${ev.map(x=>`<div class="bar" title="${x.mes}: ${R$(x.brutoDia)}/dia em ${x.dias} dias"><div class="bwrap"><div class="b" style="height:${Math.max(3,100*x.brutoDia/maxBr)}%;background:var(--c-ganho)"></div><div class="b" style="height:${Math.max(3,100*x.exPromoDia/maxBr)}%;background:var(--c-liq);margin-top:-100%;opacity:.9;width:50%"></div></div><span class="t">${x.mes.slice(5)}</span></div>`).join('')}</div>
+      <div class="mini" style="margin-top:8px">Barra larga = bruto por dia · barra estreita = sem promoção.</div>
     </div>
-    <div class="card"><h3><span class="dot liq"></span>Mês a mês (seus registros: bruto − gasolina paga − aluguel)</h3>
-      ${(()=>{const ms={};for(const[d,v]of Object.entries(S.dias)){const m=d.slice(0,7);ms[m]=ms[m]||{b:0,g:0,k:0,n:0};ms[m].b+=v.bruto||0;ms[m].g+=v.gas||0;ms[m].k+=v.km||0;ms[m].n++;}
-        const tercas=m=>tercasMes(m,true);
-        const arr=Object.entries(ms).sort();const mx=Math.max(...arr.map(([m,x])=>x.b));
-        return arr.map(([m,x])=>{const alq=tercas(m)*S.config.aluguel;const liq=x.b-x.g-alq;
-          return `<div class="hbar"><div class="hb-top"><span>${m.slice(5)}/${m.slice(2,4)} <span class="mini">(${x.n}d · ${N1(x.k)}km)</span></span><span>bruto <b>${R$(x.b)}</b> → líq. <b class="${liq>=0?'pos':'neg'}">${R$(liq)}</b></span></div><div class="hb-track"><div class="hb-fill" style="width:${100*x.b/mx}%;background:var(--c-ganho)"></div><div class="hb-fill" style="width:${Math.max(0,100*liq/mx)}%;background:var(--c-liq);margin-top:-10px;opacity:.85"></div></div></div>`;}).join('')+
-        '<div class="mini" style="margin-top:6px">Barra verde = bruto · azul = líquido. Aluguel contado pelas terças do mês. Atenção: 05/02–23/02 não tem km registrado (troca para o Mobi 2025), então o líquido de fev está superestimado na parte de gasolina não registrada nesses dias.</div>';})()}
-    </div>
-    <div class="card"><h3><span class="dot liq"></span>Categorias de corrida</h3>
+
+    <div class="card">
+      <h3><span class="dot liq"></span>Categorias e valor por corrida</h3>
       ${UBER.cat.map(x=>`<div class="hbar"><div class="hb-top"><span>${x.c}</span><span>${x.n} corridas · ticket <b>${R$(x.tk)}</b> · ${R$(x.rpm)}/min</span></div><div class="hb-track"><div class="hb-fill" style="width:${100*x.n/UBER.totais.corridas}%;background:var(--c-liq)"></div></div></div>`).join('')}
-      <div class="mini">Prioridade paga ~13% mais por corrida e ~9% mais por minuto que o UberX comum — vale aceitar sempre.</div>
+      <div style="height:10px"></div>
+      ${UBER.ticket.map(t=>`<div class="hbar"><div class="hb-top"><span>${t.f}</span><span>${t.n} corridas · ${(100*t.n/UBER.totais.corridas).toFixed(0)}%</span></div><div class="hb-track"><div class="hb-fill" style="width:${100*t.n/UBER.ticket[1].n}%;background:var(--c-meta)"></div></div></div>`).join('')}
+      <div class="mini">Ticket médio ${R$(UBER.totais.ticketMedio)} · duração média ${UBER.totais.durMedia} min. Dados dos extratos até ${fmtD(fimDosExtratos())} — não acompanham seus registros novos.</div>
     </div>
+
   </div>`;
 }
 
@@ -1290,24 +1420,47 @@ function rAnalises(){
 function rExtratos(){
   const c=document.getElementById('tabc');
   const tot=UBER.totais;
+  const fim=fimDosExtratos();
+  const conf=conferePainelExtrato();
+  /* dias registrados depois do último extrato carregado */
+  let posteriores=0, brutoPost=0;
+  for(const [d,v] of Object.entries(S.dias)){ if(d>=fim && v.bruto){ posteriores++; brutoPost+=v.bruto; } }
+
   c.innerHTML=`
+  ${posteriores?`<div class="insight i-neutro" style="margin-bottom:14px"><b>Extratos vão até ${fmtD(fim)}</b>Você tem ${posteriores} dia(s) registrado(s) depois disso, somando ${R$(brutoPost)} que ainda não foram conferidos contra extrato oficial. Os números desta aba não incluem esse período.</div>`:''}
+
   <div class="grid g4" style="margin-bottom:14px">
-    <div class="kpi ganho"><div class="lbl">Rendimentos totais</div><div class="val">${R$(tot.rend)}</div><div class="det">${UBER.semanas.length} semanas · ${fmtD(UBER.semanas[0].ini)} a ${fmtD(UBER.semanas[UBER.semanas.length-1].fim)}</div></div>
+    <div class="kpi ganho"><div class="lbl">Rendimentos totais</div><div class="val">${R$(tot.rend)}</div><div class="det">${UBER.semanas.length} semanas · ${fmtD(UBER.semanas[0].ini)} a ${fmtD(fim)}</div></div>
     <div class="kpi corr"><div class="lbl">Corridas</div><div class="val">${tot.corridas.toLocaleString('pt-BR')}</div><div class="det">ticket médio ${R$(tot.ticketMedio)}</div></div>
     <div class="kpi liq"><div class="lbl">Transferido p/ conta PJ</div><div class="val">${R$(tot.transf)}</div><div class="det">repasses de segunda + antecipações</div></div>
     <div class="kpi custo"><div class="lbl">Recebido "em dinheiro"</div><div class="val">${R$(tot.din)}</div><div class="det">${(100*tot.din/tot.rend).toFixed(1)}% · físico + Pix PJ</div></div>
   </div>
+
+  <div class="card">
+    <h3><span class="dot meta"></span>Painel × extrato oficial, semana a semana</h3>
+    <div class="tbl-wrap"><table>
+      <tr><th>Semana</th><th>Dias no painel</th><th>Extrato (app)</th><th>Painel</th><th>Diferença</th></tr>
+      ${conf.map(x=>{
+        const cor = Math.abs(x.dif)<1 ? '' : (x.dif>0?'pos':'neg');
+        return `<tr><td>${fmtD(x.ini)} → ${fmtD(x.fim)}</td><td>${x.dias}</td><td>${R$(x.extrato)}</td><td>${R$(x.painel)}</td><td class="${cor}"><b>${x.dif>=0?'+':''}${R$(x.dif)}</b></td></tr>`;
+      }).join('')}
+    </table></div>
+    <div class="mini" style="margin-top:8px">Diferença positiva é normal: o painel inclui promoção creditada à parte e corrida feita por fora, que não aparecem como corrida no extrato. Diferença <b>negativa</b> significa dia faltando no painel — vale investigar.</div>
+  </div>
+  <div style="height:14px"></div>
+
   <div class="card">
     <h3><span class="dot ganho"></span>Todas as semanas (dados oficiais dos extratos)</h3>
     <div class="tbl-wrap"><table>
       <tr><th>Semana</th><th>Saldo inicial</th><th>Rendimentos</th><th>Dinheiro receb.</th><th>Transferido</th><th>Saldo final</th><th>Corridas</th></tr>
-      ${UBER.semanas.map(w=>`<tr><td>${fmtD(w.ini)} → ${fmtD(w.fim)}</td><td>${R$(w.si)}</td><td class="pos">${R$(w.rend)}</td><td>${R$(w.din)}</td><td>${(w.transf||w.transfExtra)?R$((w.transf||0)+(w.transfExtra||0)):'–'}${w.transfExtra?' <span title="inclui antecipação de '+R$(w.transfExtra)+' na sexta">⚡</span>':''}</td><td><b>${R$(w.sf)}</b></td><td>${w.corr}</td></tr>`).join('')}
+      ${UBER.semanas.map(w=>`<tr><td>${fmtD(w.ini)} → ${fmtD(w.fim)}</td><td>${R$(w.si)}</td><td class="pos">${R$(w.rend)}</td><td>${R$(w.din)}</td><td>${(w.transf||w.transfExtra)?R$((w.transf||0)+(w.transfExtra||0)):'–'}${w.transfExtra?' <span title="inclui antecipação de '+R$(w.transfExtra)+'">⚡</span>':''}</td><td><b>${R$(w.sf)}</b></td><td>${w.corr}</td></tr>`).join('')}
     </table></div>
-    <div class="mini" style="margin-top:8px">Fechamento sempre confere: saldo inicial + rendimentos + eventos de semanas anteriores − despesas (taxas de antecipação) − pagamentos (dinheiro + transferências, inclusive antecipações ⚡) = saldo final. Validação centavo a centavo em todas as ${UBER.semanas.length} semanas.</div>
+    <div class="mini" style="margin-top:8px">Fechamento confere em todas as ${UBER.semanas.length} semanas: saldo inicial + rendimentos + eventos anteriores − despesas − pagamentos = saldo final.</div>
   </div>
   <div style="height:14px"></div>
+
   <div class="card">
-    <h3><span class="dot meta"></span>Discriminação acumulada dos rendimentos (jan–ago)</h3>
+    <h3><span class="dot meta"></span>Discriminação acumulada dos rendimentos</h3>
     ${(()=>{const dt={};UBER.semanas.forEach(w=>{for(const[k,v]of Object.entries(w.disc||{}))dt[k]=(dt[k]||0)+v;});
       const nomes={tarifa_total:'Tarifa (total)',base:'└ Base',cancelamento:'└ Cancelamentos',ajuste:'└ Ajustes de tarifa',dinamica:'└ Tarifa dinâmica',tempo_paragem:'└ Tempo em paragem',priority:'└ UberX Priority',espera_recolha:'└ Espera na recolha',promocao:'Promoções',desafio:'└ Desafios',outros:'Outros (ajustes/devoluções)',gorjeta:'Gorjetas'};
       const ordem=['tarifa_total','base','cancelamento','ajuste','dinamica','tempo_paragem','priority','espera_recolha','promocao','desafio','outros','gorjeta'];
