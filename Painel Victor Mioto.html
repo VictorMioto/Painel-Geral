@@ -697,6 +697,108 @@ function render(){
 }
 
 /* ================= ABA: VISÃO GERAL ================= */
+/* ================= ETAPA 6 · FLUXO DO MÊS ================= */
+
+/* Junta as três ilhas do painel num número só:
+   o que o carro deixou, o que as contas levaram, e o que sobrou para as metas. */
+function fluxoDoMes(){
+  const H=hoje(), mes=H.slice(0,7);
+  const diaHoje=+H.slice(8,10);
+  const diasNoMes=new Date(+mes.slice(0,4),+mes.slice(5,7),0).getDate();
+
+  /* --- entrada: o que o trabalho deixou até agora --- */
+  let bruto=0, gas=0, km=0, dias=0;
+  for(const [d,v] of Object.entries(S.dias)){
+    if(d.slice(0,7)!==mes || d>H || !v.bruto) continue;
+    bruto+=v.bruto; gas+=v.gas||0; km+=v.km||0; dias++;
+  }
+  const aluguelPago=tercasMes(mes,true)*S.config.aluguel;
+  const aluguelMes=tercasMes(mes,false)*S.config.aluguel;
+  const liqAte=bruto-gas-aluguelPago;
+
+  /* projeção até o fim do mês, pelo ritmo dos dias já rodados */
+  let diasRest=0;
+  for(let dt=new Date(H+'T12:00'); dt<=new Date(+mes.slice(0,4),+mes.slice(5,7),0); dt.setDate(dt.getDate()+1)){
+    if(dataLocal(dt)===H) continue;
+    const w=dt.getDay();
+    if(w>=1&&w<=6) diasRest+=(w===6?0.4:1);   /* sábado conta como jornada curta */
+  }
+  const ritmo=dias?bruto/dias:0;
+  const gasRatio=bruto?gas/bruto:0.2;
+  const brutoProj=bruto+ritmo*diasRest;
+  const liqProj=brutoProj*(1-gasRatio)-aluguelMes;
+
+  /* --- saída: contas do mês --- */
+  const itens=(S.contas&&S.contas.itens)||[];
+  const contasEst=itens.reduce((s,c)=>s+(c.val||0),0);
+  const contasPagas=itens.reduce((s,c)=>s+contaValorMes(c),0);
+  const contasAPagar=Math.max(0, contasEst-contasPagas);
+
+  /* --- metas: o que já foi guardado neste mês --- */
+  let aportesMes=0;
+  ((S.metas&&S.metas.itens)||[]).forEach(m=>{
+    (m.aportes||[]).forEach(a=>{ if(a.data && a.data.slice(0,7)===mes) aportesMes+=a.valor; });
+  });
+
+  const sobraHoje = liqAte - contasPagas - aportesMes;
+  const sobraProj = liqProj - contasEst - aportesMes;
+
+  /* capacidade de aporte: o que sobra depois de tudo, projetado */
+  const faltaMetas=((S.metas&&S.metas.itens)||[])
+    .reduce((s,m)=>s+Math.max(0, metaAlvo(m)-metaGuardado(m)), 0);
+
+  return { mes, dias, diasRest, bruto, gas, km, aluguelPago, aluguelMes, liqAte, brutoProj, liqProj,
+           contasEst, contasPagas, contasAPagar, aportesMes, sobraHoje, sobraProj, faltaMetas,
+           pctMes: diaHoje/diasNoMes };
+}
+
+/* card do fluxo, usado na Visão Geral */
+function cardFluxoMes(){
+  const f=fluxoDoMes();
+  const semContas=!f.contasEst;
+  const cor = f.sobraProj>=0 ? 'ganho' : 'alerta';
+  const linha=(rot,val,cl,det)=>`<div class="hbar"><div class="hb-top"><span>${rot}${det?` <span class="mini">${det}</span>`:''}</span><span class="${cl||''}"><b>${val>=0?'':'−'}${R$(Math.abs(val))}</b></span></div></div>`;
+
+  return `
+  <div class="card">
+    <h3><span class="dot ${cor}"></span>Fluxo de ${nomeMesExt(f.mes)} · do carro até as metas</h3>
+    ${semContas?'<div class="mini" style="margin-bottom:10px">Nenhuma conta cadastrada — o fluxo mostra só o lado do trabalho. Cadastre suas contas na seção Contas para fechar o ciclo.</div>':''}
+    <div class="grid g2" style="gap:0 22px">
+      <div>
+        ${linha('Bruto do trabalho', f.bruto, 'pos', `${f.dias} dia(s)`)}
+        ${linha('Gasolina paga', -f.gas, 'neg')}
+        ${linha('Aluguel já cobrado', -f.aluguelPago, 'neg', `${tercasMes(f.mes,true)} terça(s)`)}
+        <div class="sep" style="margin:6px 0"></div>
+        ${linha('Líquido do trabalho', f.liqAte, f.liqAte>=0?'pos':'neg')}
+      </div>
+      <div>
+        ${linha('Contas já pagas', -f.contasPagas, 'neg')}
+        ${linha('Guardado em metas', -f.aportesMes, 'neg')}
+        <div class="sep" style="margin:6px 0"></div>
+        ${linha('Sobra até hoje', f.sobraHoje, f.sobraHoje>=0?'pos':'neg')}
+        ${f.contasAPagar?linha('Contas ainda por pagar', -f.contasAPagar, 'neg', 'estimado'):''}
+      </div>
+    </div>
+
+    <div class="hbar" style="margin-top:12px">
+      <div class="hb-top"><span><b>Projeção de fechamento do mês</b> <span class="mini">${f.diasRest.toFixed(0)} dia(s) de rodagem pela frente</span></span>
+      <span class="${f.sobraProj>=0?'pos':'neg'}"><b>${R$(f.sobraProj)}</b></span></div>
+      <div class="hb-track">
+        <div class="hb-fill" style="width:${Math.min(100,100*f.contasEst/(f.liqProj||1))}%;background:var(--c-custo)"></div>
+      </div>
+      <div class="mini">Líquido projetado ${R$(f.liqProj)} − contas ${R$(f.contasEst)}${f.aportesMes?' − aportes já feitos '+R$(f.aportesMes):''}.
+      ${f.contasEst&&f.liqProj>0?`As contas comem <b>${(100*f.contasEst/f.liqProj).toFixed(0)}%</b> do que o carro deixa.`:''}
+      ${f.dias<5?'<b>Mês recém-começado:</b> com poucos dias rodados a projeção ainda oscila muito, e o aluguel das terças já passadas pesa desproporcionalmente. Ela fica confiável a partir da primeira semana cheia.':''}</div>
+    </div>
+
+    ${f.sobraProj>0 && f.faltaMetas>0 ? `<div class="insight i-dica" style="margin-top:10px"><b>Sobra livre para as metas</b>
+      Se o mês fechar como projetado, sobram <b>${R$(f.sobraProj)}</b> depois de contas e do que você já guardou.
+      Falta ${R$(f.faltaMetas)} para completar todas as metas — nesse ritmo, ${Math.ceil(f.faltaMetas/f.sobraProj)} mês(es).</div>`
+    : (f.sobraProj<0 && f.dias>=5) ? `<div class="insight i-neg" style="margin-top:10px"><b>Projeção negativa</b>
+      No ritmo atual o mês fecha ${R$(Math.abs(f.sobraProj))} no vermelho depois das contas. Ou entra mais bruto, ou alguma conta precisa sair.</div>` : ''}
+  </div>`;
+}
+
 function rVisao(){
   const c=document.getElementById('tabc');
   const dias=Object.entries(S.dias).sort((a,b)=>a[0]<b[0]?1:-1);
@@ -751,6 +853,9 @@ function rVisao(){
     <div class="kpi corr"><div class="lbl">Rodagem · semana</div><div class="val">${N1(sw.km)} km</div><div class="det">${sw.corr} corridas · ${fmtH(sw.horas)}h</div></div>
     <div class="kpi custo"><div class="lbl">Custo/km real</div><div class="val">${R$(ckm)}</div><div class="det">gasolina ${R$(S.config.gas)} ÷ ${(consumoReal()||S.config.consumo).toFixed(1).replace('.',',')} km/l</div></div>
   </div>
+
+  <div style="height:14px"></div>
+  ${cardFluxoMes()}
 
   <div style="height:14px"></div>
   <div class="grid g2">
@@ -1515,6 +1620,12 @@ function rInsights(){
 /* ================= ABA: PARÂMETROS ================= */
 function rConfig(){
   const c=document.getElementById('tabc');
+  const real=consumoReal();
+  const ub=S.config.ultimoBackup;
+  const diasBk = ub ? Math.round((new Date(hoje()+'T12:00')-new Date(ub+'T12:00'))/86400000) : null;
+  const nDias=Object.keys(S.dias).length;
+  const bkCl = diasBk===null ? 'i-neg' : (diasBk>7 ? 'i-neg' : (diasBk>3?'i-neutro':'i-pos'));
+
   c.innerHTML=`
   <div class="grid g2">
   <div class="card">
@@ -1527,35 +1638,76 @@ function rConfig(){
     </div>
     <button class="btn p" onclick="salvarCfg()">💾 Salvar parâmetros</button>
     <div class="sep"></div>
+    ${real?`<div class="insight ${Math.abs(real-S.config.consumo)<0.3?'i-pos':'i-neutro'}">
+      <b>Consumo medido: ${real.toFixed(2).replace('.',',')} km/l</b>
+      Calculado pelos seus próprios km e abastecimentos dos últimos 90 dias, usando o preço vigente em cada data.
+      O painel está configurado em ${S.config.consumo.toFixed(1).replace('.',',')} km/l.
+      ${Math.abs(real-S.config.consumo)<0.3?'A diferença é pequena — pode deixar como está.':`Diferença de ${Math.abs(real-S.config.consumo).toFixed(2).replace('.',',')} km/l muda o custo por km em ${R$(Math.abs(S.config.gas/S.config.consumo - S.config.gas/real))}.`}
+      <button class="btn s" style="margin-top:8px" onclick="aplicarConsumoReal()">Usar o medido (${real.toFixed(2).replace('.',',')})</button></div>`
+     :'<div class="mini">Sem km e abastecimentos suficientes nos últimos 90 dias para medir o consumo real.</div>'}
+    <div class="sep"></div>
     <div class="mini" id="cfg-impacto"></div>
     <div class="sep"></div>
     <label>Histórico do preço da gasolina (Shell)</label>
     <div class="tbl-wrap"><table>${(S.config.gasHist||[]).slice(-8).reverse().map(g=>`<tr><td>${g.data}</td><td>${R$(g.preco)}/l</td></tr>`).join('')}</table></div>
     <div class="mini" style="margin-top:6px">Ao salvar um novo preço de gasolina, ele entra automaticamente no histórico.</div>
   </div>
+
   <div class="card">
-    <h3><span class="dot meta"></span>Aparência</h3>
-    <button class="btn s" onclick="setTema(S.config.tema==='escuro'?'claro':'escuro')">${S.config.tema==='escuro'?'☀️ Mudar para o tema claro':'🌙 Mudar para o tema escuro'}</button>
-    <div class="sep"></div>
     <h3><span class="dot liq"></span>Backup dos dados</h3>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn s" onclick="exportar()">⬇ Exportar JSON</button>
+    <div class="insight ${bkCl}">
+      <b>${ub?(diasBk===0?'Backup feito hoje':`Último backup há ${diasBk} dia(s)`):'Você nunca fez backup'}</b>
+      Seus ${nDias} dias de registro existem em um lugar só: o armazenamento deste navegador, nesta máquina.
+      Limpar dados de navegação, trocar de computador ou um perfil corrompido apaga tudo, sem recuperação.
+      ${!ub||diasBk>7?'<b>Exporte agora</b> e guarde o arquivo em outra pasta ou na nuvem.':'Continue exportando toda semana até o painel ganhar banco de dados.'}
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+      <button class="btn p" onclick="exportar()">⬇ Exportar JSON</button>
       <label class="btn s" style="display:inline-block">⬆ Importar JSON<input type="file" accept=".json" style="display:none" onchange="importar(event)"></label>
     </div>
     <div class="mini" style="margin-top:10px">A importação aceita tanto o formato novo quanto o JSON do painel antigo (o campo único "dinheiro" vira "dinheiro físico" — depois você pode reclassificar em Pix QR / Pix PJ).</div>
+    <div class="sep"></div>
+    <h3><span class="dot meta"></span>Aparência</h3>
+    <button class="btn s" onclick="setTema(S.config.tema==='escuro'?'claro':'escuro')">${S.config.tema==='escuro'?'☀️ Mudar para o tema claro':'🌙 Mudar para o tema escuro'}</button>
   </div>
   </div>`;
   atualizaImpacto();
   ['cfg-gas','cfg-consumo','cfg-aluguel'].forEach(id=>document.getElementById(id).addEventListener('input',atualizaImpacto));
 }
-function atualizaImpacto(){
-  const g=+document.getElementById('cfg-gas')?.value||S.config.gas;
-  const cs=+document.getElementById('cfg-consumo')?.value||S.config.consumo;
-  const al=+document.getElementById('cfg-aluguel')?.value||S.config.aluguel;
-  const ck=g/cs, kmSem=470;
-  const el=document.getElementById('cfg-impacto'); if(!el)return;
-  el.innerHTML=`<b>Impacto em tempo real:</b> custo de gasolina <b>${R$(ck)}/km</b> · numa semana típica de ${kmSem} km: gasolina <b>${R$(kmSem*ck)}</b> + aluguel <b>${R$(al)}</b> = custo fixo <b>${R$(kmSem*ck+al)}</b>/semana. Para cada R$ 0,10 no litro, sua semana muda ~${R$(kmSem*0.10/cs)}.`;
+
+function aplicarConsumoReal(){
+  const r=consumoReal(); if(!r) return;
+  S.config.consumo=+r.toFixed(2);
+  save(); toast('Consumo atualizado para '+r.toFixed(2).replace('.',',')+' km/l ✔'); render();
 }
+
+/* Mostra, ao vivo, o efeito de mudar gasolina/consumo/aluguel.
+   Estava sendo chamada pela aba Parâmetros sem nunca ter sido definida. */
+function atualizaImpacto(){
+  const el=document.getElementById('cfg-impacto'); if(!el) return;
+  const g=+(document.getElementById('cfg-gas')||{}).value || S.config.gas;
+  const cons=+(document.getElementById('cfg-consumo')||{}).value || S.config.consumo;
+  const alu=+(document.getElementById('cfg-aluguel')||{}).value || S.config.aluguel;
+  const novoKm=g/cons, atualKm=S.config.gas/S.config.consumo;
+
+  const mes=hoje().slice(0,7);
+  let km=0, bruto=0;
+  for(const [d,v] of Object.entries(S.dias)){
+    if(d.slice(0,7)!==mes || d>hoje()) continue;
+    km+=v.km||0; bruto+=v.bruto||0;
+  }
+  const nT=tercasMes(mes,false);
+  const liqAtual=bruto-km*atualKm-nT*S.config.aluguel;
+  const liqNovo =bruto-km*novoKm -nT*alu;
+  const dif=liqNovo-liqAtual;
+
+  el.innerHTML=`Custo por km: <b>${R$(novoKm)}</b>`
+    + (Math.abs(novoKm-atualKm)>0.001?` <span class="${novoKm<atualKm?'pos':'neg'}">(hoje ${R$(atualKm)})</span>`:'')
+    + `<br>Efeito em ${nomeMesExt(mes)}, sobre ${N1(km)} km e ${nT} aluguel(éis): `
+    + (Math.abs(dif)<0.01?'<b>sem mudança</b>':`<b class="${dif>=0?'pos':'neg'}">${dif>=0?'+':'−'}${R$(Math.abs(dif))}</b> no líquido do mês`)
+    + `<br><span class="mini">Nada é salvo até você clicar em Salvar parâmetros.</span>`;
+}
+
 function salvarCfg(){
   const g=+document.getElementById('cfg-gas').value;
   if(g && g!==S.config.gas){ S.config.gasHist=S.config.gasHist||[]; S.config.gasHist.push({data:hoje(),preco:g}); }
@@ -1570,6 +1722,9 @@ function exportar(){
   const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
   a.download='victor-painel-v2-'+hoje()+'.json'; a.click();
+  S.config.ultimoBackup=hoje(); save();
+  toast('Backup exportado ✔ guarde o arquivo fora desta máquina');
+  if(sec==='desempenho'&&tab==='config') render();
 }
 function importar(ev){
   const f=ev.target.files[0]; if(!f)return;
